@@ -25,9 +25,33 @@ const PLAN_BADGES = {
   estudio: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
-function UserUsagePanel({ usage }) {
-  // Combinar histórico + pronóstico para chart de tendencia
+function UserUsagePanel({ userId }) {
+  const [usage, setUsage] = useState(null);
+  const [days, setDays] = useState(7);
+  const [loading, setLoading] = useState(true);
+
+  async function loadUsage(d) {
+    setLoading(true);
+    try {
+      const data = await apiFetch(`/api/admin/users/${userId}/usage?days=${d}`);
+      setUsage(data);
+    } catch {} finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadUsage(days); }, [userId, days]);
+
+  // Totales del rango
+  const rangeTotals = useMemo(() => {
+    if (!usage?.daily_history) return { queries: 0, cost: 0 };
+    return usage.daily_history.reduce(
+      (acc, d) => ({ queries: acc.queries + d.queries, cost: acc.cost + d.cost }),
+      { queries: 0, cost: 0 },
+    );
+  }, [usage]);
+
+  // Combinar histórico + pronóstico
   const trendData = useMemo(() => {
+    if (!usage) return [];
     const actual = (usage.daily_history || []).map((d) => ({
       date: d.date, cost: d.cost, queries: d.queries,
     }));
@@ -42,23 +66,53 @@ function UserUsagePanel({ usage }) {
   }, [usage]);
 
   const queryTypeData = useMemo(() => {
-    if (!usage.query_types) return [];
+    if (!usage?.query_types) return [];
     return Object.entries(usage.query_types).map(([k, v]) => ({
       name: QUERY_LABELS[k] || k, value: v,
     }));
   }, [usage]);
 
+  const RANGE_LABEL = { 1: "hoy", 7: "7 días", 30: "30 días", 90: "90 días" };
+
+  if (loading && !usage) {
+    return <p className="text-xs text-muted-foreground py-4 text-center">Cargando...</p>;
+  }
+  if (!usage) return null;
+
   return (
     <div className="p-4 space-y-4">
+      {/* Filtro de rango */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1.5">
+          {[1, 7, 30, 90].map((d) => (
+            <Button
+              key={d}
+              variant={days === d ? "default" : "outline"}
+              size="sm"
+              className="text-[11px] h-7 px-2.5"
+              onClick={() => setDays(d)}
+            >
+              {d === 1 ? "Hoy" : `${d}d`}
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          {loading && <span className="text-[10px] text-muted-foreground animate-pulse">Actualizando...</span>}
+          <Badge variant="outline" className={`text-[10px] ${usage.level === "critical" ? "border-destructive text-destructive" : usage.level === "warning" ? "border-yellow-500 text-yellow-400" : "border-green-500 text-green-400"}`}>
+            {usage.level === "ok" ? "Normal" : usage.level === "warning" ? "Alerta" : "Crítico"}
+          </Badge>
+        </div>
+      </div>
+
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg border bg-background p-3 text-center">
-          <p className="text-lg font-bold">{usage.daily_queries}</p>
-          <p className="text-[10px] text-muted-foreground">Consultas hoy</p>
+          <p className="text-lg font-bold">{rangeTotals.queries}</p>
+          <p className="text-[10px] text-muted-foreground">Consultas ({RANGE_LABEL[days] || `${days}d`})</p>
         </div>
         <div className="rounded-lg border bg-background p-3 text-center">
-          <p className="text-lg font-bold">${usage.daily_cost_usd}</p>
-          <p className="text-[10px] text-muted-foreground">Costo hoy</p>
+          <p className="text-lg font-bold">${rangeTotals.cost.toFixed(4)}</p>
+          <p className="text-[10px] text-muted-foreground">Costo ({RANGE_LABEL[days] || `${days}d`})</p>
         </div>
         <div className="rounded-lg border bg-background p-3 text-center">
           <p className="text-lg font-bold">{usage.total_queries || 0}</p>
@@ -68,19 +122,12 @@ function UserUsagePanel({ usage }) {
           <p className="text-lg font-bold">${usage.total_cost_usd}</p>
           <p className="text-[10px] text-muted-foreground">Costo total</p>
         </div>
-        <div className="rounded-lg border bg-background p-3 text-center">
-          <p className={`text-lg font-bold ${usage.level === "critical" ? "text-destructive" : usage.level === "warning" ? "text-yellow-400" : "text-green-400"}`}>
-            {usage.level === "ok" ? "Normal" : usage.level === "warning" ? "Alerta" : "Crítico"}
-          </p>
-          <p className="text-[10px] text-muted-foreground">Nivel</p>
-        </div>
       </div>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Consultas por día */}
         <div className="rounded-lg border bg-background p-3">
-          <p className="text-xs font-semibold mb-2">Consultas por día (30 días)</p>
+          <p className="text-xs font-semibold mb-2">Consultas por día</p>
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={usage.daily_history || []}>
@@ -94,7 +141,6 @@ function UserUsagePanel({ usage }) {
           </div>
         </div>
 
-        {/* Costo + Pronóstico */}
         <div className="rounded-lg border bg-background p-3">
           <p className="text-xs font-semibold mb-2 flex items-center gap-1">
             <TrendingUp className="h-3 w-3" /> Costo diario + Pronóstico
@@ -139,7 +185,6 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
-  const [usage, setUsage] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editPlan, setEditPlan] = useState("");
   const perPage = 20;
@@ -157,11 +202,8 @@ export default function UsersPage() {
 
   function handleSearch(e) { e?.preventDefault?.(); setPage(0); loadUsers(search); }
 
-  async function handleExpand(id) {
-    if (expandedId === id) { setExpandedId(null); return; }
-    setExpandedId(id);
-    setUsage(null);
-    try { const d = await apiFetch(`/api/admin/users/${id}/usage`); setUsage(d); } catch {}
+  function handleExpand(id) {
+    setExpandedId(expandedId === id ? null : id);
   }
 
   async function handleSave(userId) {
@@ -209,15 +251,16 @@ export default function UsersPage() {
               <TableHead>Usuario</TableHead>
               <TableHead>Plan</TableHead>
               <TableHead>Consultas</TableHead>
+              <TableHead>Registro</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Cargando...</TableCell></TableRow>
             ) : paginated.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">Sin resultados</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Sin resultados</TableCell></TableRow>
             ) : paginated.map((u) => (
               <>
                 <TableRow key={u.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleExpand(u.id)}>
@@ -242,6 +285,11 @@ export default function UsersPage() {
                   <TableCell>
                     <span className="font-mono text-sm">{u.queries_used || 0}</span>
                     <span className="text-muted-foreground">/{u.queries_limit === -1 ? "∞" : u.queries_limit || 10}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs text-muted-foreground">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {u.is_banned ? (
@@ -270,10 +318,8 @@ export default function UsersPage() {
                 </TableRow>
                 {expandedId === u.id && (
                   <TableRow>
-                    <TableCell colSpan={5} className="bg-muted/30 p-0">
-                      {usage ? (
-                        <UserUsagePanel usage={usage} />
-                      ) : <p className="text-xs text-muted-foreground py-4 text-center">Cargando...</p>}
+                    <TableCell colSpan={6} className="bg-muted/30 p-0">
+                      <UserUsagePanel userId={u.id} />
                     </TableCell>
                   </TableRow>
                 )}
