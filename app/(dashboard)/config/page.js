@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Save, ChevronDown, ChevronUp, Cpu, Search as SearchIcon,
   Bot, Shield, Gauge, Type, AlertTriangle, CreditCard, Lock, FileText, Sparkles,
+  DollarSign, Info, ExternalLink,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
@@ -27,15 +28,16 @@ const CONFIG_SECTIONS = [
   {
     key: "llm_config",
     label: "Modelos LLM",
-    desc: "Modelos de OpenAI usados por cada componente. Cambiar el modelo afecta calidad y costo de las respuestas.",
+    desc: "Selecciona el proveedor y modelo para cada componente. Soporta OpenAI, Claude, Gemini, Groq y Ollama.",
     category: "IA",
+    type: "llm",
     fields: [
-      { key: "clasificador_model", label: "Clasificador", type: "select", options: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"], hint: "Decide si la consulta es búsqueda legal, análisis profundo, etc. ⚡ gpt-4o-mini es 15x más barato y suficiente para clasificar." },
-      { key: "agent_model", label: "Agente principal", type: "select", options: ["gpt-4o", "gpt-4o-mini"], hint: "Genera respuestas a consultas generales y documentos legales. 💡 gpt-4o da mejor calidad pero cuesta ~$0.01/consulta vs $0.0005 con mini." },
-      { key: "crew_model", label: "CrewAI (análisis profundo)", type: "select", options: ["gpt-4o", "gpt-4o-mini"], hint: "Usado por los 4 agentes del análisis profundo (investigador, analista, validador, redactor). ⚠️ Cada análisis hace ~8-12 llamadas al LLM. Usar mini reduce costo 10x pero baja calidad." },
-      { key: "rag_model", label: "RAG (búsqueda legal)", type: "select", options: ["gpt-4o", "gpt-4o-mini"], hint: "Sintetiza la respuesta final a partir de los artículos encontrados en Pinecone. 💡 mini es suficiente para la mayoría de búsquedas." },
-      { key: "producto_model", label: "Asistente de ventas", type: "select", options: ["gpt-4o-mini", "gpt-4o"], hint: "Responde preguntas sobre planes, precios y funcionalidades de LexIA. ⚡ mini recomendado (consultas simples)." },
-      { key: "embedding_model", label: "Embeddings", type: "select", options: ["text-embedding-3-small", "text-embedding-3-large"], hint: "Convierte texto en vectores para búsqueda. ⚠️ Cambiar este modelo requiere REINDEXAR toda la base legal (puede tomar horas)." },
+      { key: "clasificador_model", label: "Clasificador", hint: "Clasifica el tipo de consulta (1 palabra). Solo necesita un modelo barato/rápido.", callsPerQuery: 1, docs: "https://platform.openai.com/docs/models" },
+      { key: "agent_model", label: "Agente principal", hint: "Responde consultas generales y genera documentos legales. El modelo más importante.", callsPerQuery: 1, docs: "https://platform.openai.com/docs/models" },
+      { key: "crew_model", label: "CrewAI (análisis profundo)", hint: "Usado por los 4 agentes del análisis profundo. Cada análisis hace ~8-12 llamadas.", callsPerQuery: 10, docs: "https://docs.crewai.com/" },
+      { key: "rag_model", label: "RAG (búsqueda legal)", hint: "Sintetiza respuestas a partir de artículos encontrados en Pinecone.", callsPerQuery: 1, docs: "https://docs.llamaindex.ai/" },
+      { key: "producto_model", label: "Asistente de ventas", hint: "Responde preguntas sobre LexIA como producto. Consultas simples.", callsPerQuery: 1 },
+      { key: "embedding_model", label: "Embeddings", hint: "⚠️ Cambiar requiere REINDEXAR toda la base legal.", type: "select", options: ["text-embedding-3-small", "text-embedding-3-large"] },
     ],
   },
   {
@@ -44,11 +46,11 @@ const CONFIG_SECTIONS = [
     desc: "Controla cómo busca y recupera artículos de la legislación peruana en Pinecone.",
     category: "IA",
     fields: [
-      { key: "similarity_top_k", label: "Top K resultados", type: "number", hint: "Cuántos fragmentos de legislación recuperar por búsqueda. 📊 Más = respuestas más completas pero más lentas y costosas. Recomendado: 5-10." },
-      { key: "cache_ttl", label: "Cache TTL (segundos)", type: "number", hint: "Tiempo que una consulta repetida se sirve desde cache sin llamar a Pinecone/OpenAI. 💡 3600 = 1 hora. Subir ahorra costos, bajar da datos más frescos." },
-      { key: "cache_max_entries", label: "Cache max entradas", type: "number", hint: "Máximo de consultas cacheadas en memoria. 📊 500 entradas ≈ 50MB RAM. Si el servidor tiene poca memoria, reducir." },
-      { key: "history_limit", label: "Historial de mensajes", type: "number", hint: "Mensajes anteriores enviados como contexto al LLM. 💡 6 = últimos 3 turnos de conversación. Más contexto = respuestas más coherentes pero más tokens (más costo)." },
-      { key: "history_truncation_length", label: "Truncar respuestas (chars)", type: "number", hint: "Las respuestas largas del historial se cortan a esta longitud para ahorrar tokens. 📊 2000 chars ≈ 500 tokens." },
+      { key: "similarity_top_k", label: "Top K resultados", type: "number", min: 1, max: 20, hint: "Cuántos fragmentos de legislación recuperar por búsqueda. 📊 Más = respuestas más completas pero más lentas y costosas. Recomendado: 5-10.", dynamicHint: (v) => v > 10 ? "⚠️ Más de 10 puede ser lento y costoso" : v < 3 ? "⚠️ Menos de 3 puede dar respuestas incompletas" : "✅ Valor adecuado" },
+      { key: "cache_ttl", label: "Cache TTL (segundos)", type: "number", min: 0, max: 86400, hint: "Tiempo que una consulta repetida se sirve desde cache. 💡 3600 = 1 hora.", dynamicHint: (v) => `= ${v >= 3600 ? `${(v/3600).toFixed(1)} horas` : v >= 60 ? `${Math.round(v/60)} minutos` : `${v} segundos`}. ${v === 0 ? "Cache desactivado (más caro)" : v > 7200 ? "Cache largo: respuestas pueden estar desactualizadas" : ""}` },
+      { key: "cache_max_entries", label: "Cache max entradas", type: "number", min: 10, max: 5000, hint: "Máximo de consultas cacheadas en memoria.", dynamicHint: (v) => `≈ ${Math.round(v * 0.1)}MB de RAM` },
+      { key: "history_limit", label: "Historial de mensajes", type: "number", min: 0, max: 20, hint: "Mensajes anteriores enviados como contexto al LLM.", dynamicHint: (v) => `= ${Math.floor(v/2)} turnos de conversación. ${v > 10 ? "⚠️ Mucho contexto = más tokens = más costo" : v === 0 ? "Sin contexto (cada mensaje es independiente)" : ""}` },
+      { key: "history_truncation_length", label: "Truncar respuestas (chars)", type: "number", min: 500, max: 10000, hint: "Las respuestas largas en historial se cortan.", dynamicHint: (v) => `≈ ${Math.round(v/4)} tokens` },
     ],
   },
   {
@@ -57,11 +59,11 @@ const CONFIG_SECTIONS = [
     desc: "Controla cuántas veces cada agente puede iterar en el análisis profundo. Más iteraciones = mejor calidad pero más costo.",
     category: "IA",
     fields: [
-      { key: "investigador_max_iter", label: "Investigador", type: "number", hint: "Busca leyes y normas en Pinecone. 📊 Con 4 iteraciones hace ~3-4 búsquedas diferentes. Reducir a 2 si quieres análisis más rápidos/baratos." },
-      { key: "analista_max_iter", label: "Analista", type: "number", hint: "Busca jurisprudencia y precedentes del TC. 📊 Similar al investigador. 3-4 iteraciones es el balance ideal." },
-      { key: "validador_max_iter", label: "Validador", type: "number", hint: "Verifica que los artículos y sentencias citados sean reales. ⚠️ Es el control de calidad. No reducir por debajo de 2." },
-      { key: "redactor_max_iter", label: "Redactor", type: "number", hint: "Genera el documento final con toda la información validada. 💡 2 iteraciones es suficiente (solo redacta, no busca)." },
-      { key: "max_validation_retries", label: "Reintentos de validación", type: "number", hint: "Si el validador detecta información sin fuente, reintenta el análisis completo. ⚠️ Cada reintento duplica el costo. Recomendado: 1." },
+      { key: "investigador_max_iter", label: "Investigador", type: "number", min: 1, max: 10, hint: "Busca leyes y normas en Pinecone.", dynamicHint: (v) => `Hará ~${v} búsquedas. ${v > 5 ? "⚠️ Lento y costoso" : v < 2 ? "⚠️ Puede no encontrar lo relevante" : "✅ Balance adecuado"}` },
+      { key: "analista_max_iter", label: "Analista", type: "number", min: 1, max: 10, hint: "Busca jurisprudencia y precedentes del TC.", dynamicHint: (v) => `Hará ~${v} búsquedas de sentencias. Recomendado: 3-4` },
+      { key: "validador_max_iter", label: "Validador", type: "number", min: 1, max: 5, hint: "Verifica fuentes citadas. ⚠️ Es el control de calidad.", dynamicHint: (v) => v < 2 ? "⚠️ Puede dejar pasar citas falsas" : "✅ Suficiente para validar" },
+      { key: "redactor_max_iter", label: "Redactor", type: "number", min: 1, max: 5, hint: "Genera el documento final.", dynamicHint: (v) => `${v} iteraciones de redacción. 💡 2 es suficiente` },
+      { key: "max_validation_retries", label: "Reintentos de validación", type: "number", min: 0, max: 3, hint: "Reintentos si la calidad es baja.", dynamicHint: (v) => `⚠️ Cada reintento ${v > 0 ? `multiplica el costo x${v + 1}` : "no tiene costo extra (0 reintentos)"}` },
     ],
   },
   {
@@ -159,7 +161,7 @@ function setNestedValue(obj, path, value) {
   return clone;
 }
 
-function FormSection({ section, data, onSave }) {
+function LlmSection({ section, data, onSave, availableModels }) {
   const [values, setValues] = useState(data || {});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -167,7 +169,151 @@ function FormSection({ section, data, onSave }) {
 
   useEffect(() => { setValues(data || {}); }, [data]);
 
-  function handleChange(fieldKey, val) {
+  // Build flat options list from available models
+  const modelOptions = useMemo(() => {
+    if (!availableModels) return [];
+    const opts = [];
+    for (const [provider, info] of Object.entries(availableModels)) {
+      for (const m of info.models) {
+        opts.push({
+          id: m.id,
+          label: `${m.name}`,
+          provider: info.label,
+          configured: info.configured,
+          free: m.free,
+          costIn: m.cost_input,
+          costOut: m.cost_output,
+        });
+      }
+    }
+    return opts;
+  }, [availableModels]);
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave(section.key, values);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  return (
+    <ConfigCard section={section} icon={Cpu} open={open} onToggle={() => setOpen(!open)} saved={saved}>
+      {open && (
+        <div className="space-y-4">
+          {/* Cost table */}
+          {availableModels && (
+            <details className="rounded-lg border p-3">
+              <summary className="text-xs font-medium cursor-pointer flex items-center gap-1">
+                <DollarSign className="h-3 w-3" /> Ver tabla de costos por modelo
+              </summary>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-1 pr-3">Proveedor</th>
+                      <th className="text-left py-1 pr-3">Modelo</th>
+                      <th className="text-right py-1 pr-3">Input/1M tok</th>
+                      <th className="text-right py-1 pr-3">Output/1M tok</th>
+                      <th className="text-center py-1">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelOptions.map((m) => (
+                      <tr key={m.id} className="border-b last:border-0">
+                        <td className="py-1.5 pr-3 text-muted-foreground">{m.provider}</td>
+                        <td className="py-1.5 pr-3 font-mono">{m.label}</td>
+                        <td className="py-1.5 pr-3 text-right font-mono">{m.free ? "Gratis" : `$${m.costIn}`}</td>
+                        <td className="py-1.5 pr-3 text-right font-mono">{m.free ? "Gratis" : `$${m.costOut}`}</td>
+                        <td className="py-1.5 text-center">
+                          {m.configured ? (
+                            <Badge className="bg-green-500/10 text-green-400 text-[9px]">Listo</Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/10 text-amber-400 text-[9px]">Sin API key</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+
+          {/* Model selectors */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {section.fields.map((field) => {
+              const currentVal = values[field.key] || "";
+              const selected = modelOptions.find((m) => m.id === currentVal || m.label === currentVal);
+
+              // Embedding uses simple select
+              if (field.type === "select") {
+                return (
+                  <div key={field.key}>
+                    <label className="block text-xs font-medium mb-1">{field.label}</label>
+                    <select value={currentVal} onChange={(e) => setValues({ ...values, [field.key]: e.target.value })} className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:border-primary focus:outline-none">
+                      {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    <p className="text-[10px] text-muted-foreground mt-1">{field.hint}</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={field.key} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium">{field.label}</label>
+                    {field.docs && <a href={field.docs} target="_blank" rel="noopener" className="text-[9px] text-primary hover:underline flex items-center gap-0.5"><Info className="h-2.5 w-2.5" />Docs</a>}
+                  </div>
+                  <select
+                    value={currentVal}
+                    onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+                    className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="">— Seleccionar modelo —</option>
+                    {Object.entries(availableModels || {}).map(([prov, info]) => (
+                      <optgroup key={prov} label={`${info.label}${info.configured ? "" : " (sin API key)"}`}>
+                        {info.models.map((m) => (
+                          <option key={m.id} value={m.id} disabled={!info.configured}>
+                            {m.name} {m.free ? "(gratis)" : `($${m.cost_input}/$${m.cost_output})`}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-muted-foreground">{field.hint}</p>
+                  {selected && field.callsPerQuery && !selected.free && (
+                    <p className="text-[10px] text-amber-400">
+                      ≈ ${((selected.costIn * 1000 + selected.costOut * 500) / 1_000_000 * field.callsPerQuery).toFixed(4)} USD/consulta ({field.callsPerQuery} llamada{field.callsPerQuery > 1 ? "s" : ""})
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Save className="h-3 w-3 mr-1" />
+            {saving ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </div>
+      )}
+    </ConfigCard>
+  );
+}
+
+function FormSection({ section, data, onSave }) {
+  const [values, setValues] = useState(data || {});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => { setValues(data || {}); }, [data]);
+
+  function handleChange(fieldKey, val, field) {
+    if (field?.type === "number" && field.min != null && val < field.min) return;
+    if (field?.type === "number" && field.max != null && val > field.max) return;
     if (section.nested) {
       setValues(setNestedValue(values, fieldKey, val));
     } else {
@@ -175,7 +321,22 @@ function FormSection({ section, data, onSave }) {
     }
   }
 
+  function validate() {
+    const errs = {};
+    for (const field of (section.fields || [])) {
+      const val = section.nested ? getNestedValue(values, field.key) : values[field.key];
+      if (field.type === "number") {
+        if (val === "" || val === null || val === undefined) { errs[field.key] = "Requerido"; continue; }
+        if (field.min != null && val < field.min) errs[field.key] = `Mínimo: ${field.min}`;
+        if (field.max != null && val > field.max) errs[field.key] = `Máximo: ${field.max}`;
+      }
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   async function handleSave() {
+    if (!validate()) return;
     setSaving(true);
     await onSave(section.key, values);
     setSaving(false);
@@ -250,13 +411,18 @@ function FormSection({ section, data, onSave }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {section.fields.map((field) => {
               const val = section.nested ? getNestedValue(values, field.key) : values[field.key];
+              const err = errors[field.key];
+              const dynHint = field.dynamicHint && val != null ? field.dynamicHint(val) : null;
               return (
                 <div key={field.key}>
-                  <label className="block text-xs text-muted-foreground mb-1">{field.label}</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium">{field.label}</label>
+                    {field.min != null && <span className="text-[9px] text-muted-foreground">{field.min} — {field.max}</span>}
+                  </div>
                   {field.type === "select" ? (
                     <select
                       value={val || ""}
-                      onChange={(e) => handleChange(field.key, e.target.value)}
+                      onChange={(e) => handleChange(field.key, e.target.value, field)}
                       className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:border-primary focus:outline-none"
                     >
                       {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -265,11 +431,15 @@ function FormSection({ section, data, onSave }) {
                     <input
                       type={field.type === "number" ? "number" : "text"}
                       value={val ?? ""}
-                      onChange={(e) => handleChange(field.key, field.type === "number" ? Number(e.target.value) : e.target.value)}
-                      className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:border-primary focus:outline-none"
+                      min={field.min}
+                      max={field.max}
+                      onChange={(e) => handleChange(field.key, field.type === "number" ? Number(e.target.value) : e.target.value, field)}
+                      className={`w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none ${err ? "border-destructive focus:border-destructive" : "focus:border-primary"}`}
                     />
                   )}
-                  {field.hint && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{field.hint}</p>}
+                  {err && <p className="text-[10px] text-destructive mt-0.5">{err}</p>}
+                  {field.hint && <p className="text-[10px] text-muted-foreground mt-0.5">{field.hint}</p>}
+                  {dynHint && <p className="text-[10px] text-amber-400 mt-0.5">{dynHint}</p>}
                 </div>
               );
             })}
@@ -311,12 +481,17 @@ export default function AdminConfigPage() {
   const [config, setConfig] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("IA");
+  const [availableModels, setAvailableModels] = useState(null);
 
   async function loadConfig() {
     setLoading(true);
     try {
-      const data = await apiFetch("/api/admin/config");
+      const [data, models] = await Promise.all([
+        apiFetch("/api/admin/config"),
+        apiFetch("/api/admin/available-models").catch(() => null),
+      ]);
       setConfig(data || {});
+      if (models) setAvailableModels(models);
     } catch {} finally { setLoading(false); }
   }
 
@@ -366,12 +541,22 @@ export default function AdminConfigPage() {
 
       <div className="space-y-3">
         {filteredSections.map((section) => (
-          <FormSection
-            key={section.key}
-            section={section}
-            data={config[section.key]}
-            onSave={handleSave}
-          />
+          section.type === "llm" ? (
+            <LlmSection
+              key={section.key}
+              section={section}
+              data={config[section.key]}
+              onSave={handleSave}
+              availableModels={availableModels}
+            />
+          ) : (
+            <FormSection
+              key={section.key}
+              section={section}
+              data={config[section.key]}
+              onSave={handleSave}
+            />
+          )
         ))}
       </div>
     </div>
