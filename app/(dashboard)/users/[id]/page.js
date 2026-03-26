@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft, User, Mail, CreditCard, Calendar, MessageSquare,
   FileText, TrendingUp, Shield, Clock, Zap, BarChart3, ScrollText,
+  ChevronDown, Bot, DollarSign,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,101 @@ const ACTION_LABELS = {
   "admin.user.update": "Actualizado",
   "system.alert.critical": "Alerta crítica",
 };
+
+const QUERY_TYPE_LABELS = {
+  BUSQUEDA_LEGAL: "Búsqueda legal",
+  CONSULTA_GENERAL: "General",
+  ANALISIS_PROFUNDO: "Análisis profundo",
+  CASO_NUEVO: "Caso nuevo",
+};
+
+function ConversationItem({ conversation: c }) {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function loadMessages() {
+    if (messages) { setOpen(!open); return; }
+    setOpen(true);
+    setLoading(true);
+    try {
+      const data = await apiFetch(`/api/admin/conversations/${c.id}/messages`);
+      if (Array.isArray(data)) setMessages(data);
+    } catch {} finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <button
+        onClick={loadMessages}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+      >
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <MessageSquare className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{c.user_name || "Conversación"}</p>
+          <p className="text-[10px] text-muted-foreground">
+            {c.message_count} mensajes · ${c.cost_usd} USD
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px] shrink-0">{CHANNEL_LABELS[c.channel] || c.channel}</Badge>
+        <span className="text-[10px] text-muted-foreground shrink-0">
+          {new Date(c.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="border-t bg-muted/20 px-4 py-3 space-y-3">
+          {loading ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Cargando mensajes...</p>
+          ) : !messages || messages.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Sin mensajes</p>
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex gap-2 ${m.role === "user" ? "justify-end" : ""}`}
+                >
+                  {m.role !== "user" && (
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="h-3 w-3 text-primary" />
+                    </div>
+                  )}
+                  <div className={`rounded-lg px-3 py-2 text-xs leading-relaxed max-w-[85%] ${
+                    m.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card border"
+                  }`}>
+                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                    <div className="flex items-center gap-2 mt-1.5 opacity-70">
+                      {m.role === "assistant" && m.tools_used?.[0] && (
+                        <Badge variant="outline" className="text-[8px] py-0 h-4">{QUERY_TYPE_LABELS[m.tools_used[0]] || m.tools_used[0]}</Badge>
+                      )}
+                      {m.role === "assistant" && m.cost_usd > 0 && (
+                        <span className="text-[9px] flex items-center gap-0.5"><DollarSign className="h-2.5 w-2.5" />{Number(m.cost_usd).toFixed(4)}</span>
+                      )}
+                      <span className="text-[9px] ml-auto">
+                        {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </div>
+                  {m.role === "user" && (
+                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -293,22 +389,7 @@ export default function UserDetailPage() {
             ) : (
               <div className="divide-y">
                 {detail.conversations.map((c) => (
-                  <div key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{c.preview || c.user_name || "Conversación"}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {c.message_count} mensajes · ${c.cost_usd} USD
-                        {c.is_deleted && " · Eliminada"}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{CHANNEL_LABELS[c.channel] || c.channel}</Badge>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {new Date(c.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
-                    </span>
-                  </div>
+                  <ConversationItem key={c.id} conversation={c} />
                 ))}
               </div>
             )}
