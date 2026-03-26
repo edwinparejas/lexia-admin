@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+
+const QUERY_LABELS = {
+  BUSQUEDA_LEGAL: "Búsqueda",
+  CONSULTA_GENERAL: "General",
+  ANALISIS_PROFUNDO: "Análisis",
+  CASO_NUEVO: "Caso nuevo",
+  CONSULTA_PRODUCTO: "Producto",
+};
 
 const PLAN_BADGES = {
   trial: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
@@ -15,6 +24,114 @@ const PLAN_BADGES = {
   profesional: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   estudio: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
+
+function UserUsagePanel({ usage }) {
+  // Combinar histórico + pronóstico para chart de tendencia
+  const trendData = useMemo(() => {
+    const actual = (usage.daily_history || []).map((d) => ({
+      date: d.date, cost: d.cost, queries: d.queries,
+    }));
+    const forecast = (usage.forecast || []).map((d) => ({
+      date: d.date, forecastCost: d.cost, forecastQueries: d.queries,
+    }));
+    if (actual.length > 0 && forecast.length > 0) {
+      forecast[0].cost = actual[actual.length - 1].cost;
+      forecast[0].queries = actual[actual.length - 1].queries;
+    }
+    return [...actual, ...forecast];
+  }, [usage]);
+
+  const queryTypeData = useMemo(() => {
+    if (!usage.query_types) return [];
+    return Object.entries(usage.query_types).map(([k, v]) => ({
+      name: QUERY_LABELS[k] || k, value: v,
+    }));
+  }, [usage]);
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="rounded-lg border bg-background p-3 text-center">
+          <p className="text-lg font-bold">{usage.daily_queries}</p>
+          <p className="text-[10px] text-muted-foreground">Consultas hoy</p>
+        </div>
+        <div className="rounded-lg border bg-background p-3 text-center">
+          <p className="text-lg font-bold">${usage.daily_cost_usd}</p>
+          <p className="text-[10px] text-muted-foreground">Costo hoy</p>
+        </div>
+        <div className="rounded-lg border bg-background p-3 text-center">
+          <p className="text-lg font-bold">{usage.total_queries || 0}</p>
+          <p className="text-[10px] text-muted-foreground">Consultas total</p>
+        </div>
+        <div className="rounded-lg border bg-background p-3 text-center">
+          <p className="text-lg font-bold">${usage.total_cost_usd}</p>
+          <p className="text-[10px] text-muted-foreground">Costo total</p>
+        </div>
+        <div className="rounded-lg border bg-background p-3 text-center">
+          <p className={`text-lg font-bold ${usage.level === "critical" ? "text-destructive" : usage.level === "warning" ? "text-yellow-400" : "text-green-400"}`}>
+            {usage.level === "ok" ? "Normal" : usage.level === "warning" ? "Alerta" : "Crítico"}
+          </p>
+          <p className="text-[10px] text-muted-foreground">Nivel</p>
+        </div>
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Consultas por día */}
+        <div className="rounded-lg border bg-background p-3">
+          <p className="text-xs font-semibold mb-2">Consultas por día (30 días)</p>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={usage.daily_history || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="date" tick={{ fontSize: 9 }} tickFormatter={(v) => v.slice(5)} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 9 }} className="fill-muted-foreground" />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "11px" }} />
+                <Bar dataKey="queries" fill="#3b82f6" radius={[3, 3, 0, 0]} name="Consultas" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Costo + Pronóstico */}
+        <div className="rounded-lg border bg-background p-3">
+          <p className="text-xs font-semibold mb-2 flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" /> Costo diario + Pronóstico
+          </p>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="date" tick={{ fontSize: 9 }} tickFormatter={(v) => v.slice(5)} className="fill-muted-foreground" />
+                <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `$${v}`} className="fill-muted-foreground" />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "11px" }} formatter={(v) => v != null ? [`$${v}`, ""] : ["-", ""]} />
+                <Area type="monotone" dataKey="cost" stroke="#3b82f6" fill="#3b82f615" strokeWidth={2} name="Real" />
+                <Area type="monotone" dataKey="forecastCost" stroke="#f59e0b" fill="#f59e0b15" strokeWidth={2} strokeDasharray="5 3" name="Pronóstico" />
+                <Legend wrapperStyle={{ fontSize: "10px" }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Query types */}
+      {queryTypeData.length > 0 && (
+        <div className="rounded-lg border bg-background p-3">
+          <p className="text-xs font-semibold mb-2">Tipos de consulta</p>
+          <div className="flex gap-2 flex-wrap">
+            {queryTypeData.map((qt) => (
+              <div key={qt.name} className="flex items-center gap-1.5 text-xs">
+                <Badge variant="outline" className="text-[10px]">{qt.name}</Badge>
+                <span className="font-bold">{qt.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -153,20 +270,10 @@ export default function UsersPage() {
                 </TableRow>
                 {expandedId === u.id && (
                   <TableRow>
-                    <TableCell colSpan={5} className="bg-muted/30">
+                    <TableCell colSpan={5} className="bg-muted/30 p-0">
                       {usage ? (
-                        <div className="grid grid-cols-4 gap-3 py-2">
-                          <div className="text-center"><p className="text-lg font-bold">{usage.daily_queries}</p><p className="text-[10px] text-muted-foreground">Consultas hoy</p></div>
-                          <div className="text-center"><p className="text-lg font-bold">${usage.daily_cost_usd}</p><p className="text-[10px] text-muted-foreground">Costo hoy</p></div>
-                          <div className="text-center"><p className="text-lg font-bold">${usage.total_cost_usd}</p><p className="text-[10px] text-muted-foreground">Costo total</p></div>
-                          <div className="text-center">
-                            <p className={`text-lg font-bold ${usage.level === "critical" ? "text-destructive" : usage.level === "warning" ? "text-yellow-400" : "text-green-400"}`}>
-                              {usage.level === "ok" ? "Normal" : usage.level}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">Nivel</p>
-                          </div>
-                        </div>
-                      ) : <p className="text-xs text-muted-foreground py-2">Cargando...</p>}
+                        <UserUsagePanel usage={usage} />
+                      ) : <p className="text-xs text-muted-foreground py-4 text-center">Cargando...</p>}
                     </TableCell>
                   </TableRow>
                 )}
