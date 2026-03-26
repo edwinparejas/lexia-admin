@@ -269,7 +269,7 @@ export default function MetricsPage() {
                       <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} className="fill-muted-foreground" />
                       <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" />
                       <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                      <Bar dataKey="queries" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Consultas" />
+                      <Bar dataKey="queries" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Consultas" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -360,7 +360,7 @@ export default function MetricsPage() {
                       <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={110} className="fill-muted-foreground" />
                       <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Consultas" />
+                      <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Consultas" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
