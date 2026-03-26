@@ -50,6 +50,193 @@ const ACTION_LABELS = {
   "system.alert.critical": "Alerta crítica",
 };
 
+function SubscriptionTab({ user, userId, onRefresh }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showActivate, setShowActivate] = useState(false);
+  const [showExtend, setShowExtend] = useState(false);
+  const [showCoupon, setShowCoupon] = useState(false);
+  const [form, setForm] = useState({ plan: "basico", duration_days: 30, days: 30, coupon_code: "", reason: "" });
+
+  useEffect(() => {
+    apiFetch(`/api/admin/users/${userId}/subscription-history`).then(setHistory).catch(() => {}).finally(() => setLoading(false));
+  }, [userId]);
+
+  async function handleAction(action, body = {}) {
+    setActionLoading(true);
+    try {
+      const res = await apiFetch(`/api/admin/users/${userId}/subscription`, { method: "POST", body: JSON.stringify({ action, ...body }) });
+      if (res?.error) { alert(res.error); return; }
+      onRefresh();
+      setShowActivate(false); setShowExtend(false); setShowCoupon(false);
+      const h = await apiFetch(`/api/admin/users/${userId}/subscription-history`);
+      setHistory(h);
+    } catch (e) { alert("Error"); }
+    finally { setActionLoading(false); }
+  }
+
+  const isActive = user.plan && user.plan !== "trial" && user.plan !== "inactive";
+  const expiresAt = user.plan_expires_at ? new Date(user.plan_expires_at) : null;
+  const startedAt = user.plan_started_at ? new Date(user.plan_started_at) : null;
+  const isExpired = expiresAt && expiresAt < new Date();
+  const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - new Date()) / 86400000)) : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Current subscription */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Suscripción actual</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5">Plan</p>
+              <Badge variant="outline" className={`text-sm ${PLAN_BADGES[user.plan] || ""}`}>{user.plan || "trial"}</Badge>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5">Inicio</p>
+              <p className="text-sm font-medium">{startedAt ? startedAt.toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" }) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5">Vencimiento</p>
+              <p className={`text-sm font-medium ${isExpired ? "text-destructive" : ""}`}>
+                {expiresAt ? expiresAt.toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" }) : "Sin vencimiento"}
+                {daysLeft != null && !isExpired && <span className="text-[10px] text-muted-foreground ml-1">({daysLeft} días)</span>}
+                {isExpired && <span className="text-[10px] text-destructive ml-1">(Expirado)</span>}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5">Renovación auto</p>
+              <p className="text-sm font-medium">{user.plan_auto_renew ? "Sí" : "No"}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex gap-2 flex-wrap">
+        <Button size="sm" onClick={() => setShowActivate(!showActivate)} variant={showActivate ? "default" : "outline"}>
+          <CreditCard className="h-3.5 w-3.5 mr-1" /> Activar plan
+        </Button>
+        {isActive && (
+          <>
+            <Button size="sm" variant="outline" onClick={() => setShowExtend(!showExtend)}>
+              <Clock className="h-3.5 w-3.5 mr-1" /> Extender
+            </Button>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={() => { if (confirm("¿Cancelar suscripción?")) handleAction("cancel", { reason: "Cancelación manual" }); }}>
+              Cancelar suscripción
+            </Button>
+          </>
+        )}
+        <Button size="sm" variant="outline" onClick={() => setShowCoupon(!showCoupon)}>
+          <Zap className="h-3.5 w-3.5 mr-1" /> Aplicar cupón
+        </Button>
+      </div>
+
+      {/* Activate form */}
+      {showActivate && (
+        <Card>
+          <CardContent className="pt-5 space-y-3">
+            <p className="text-xs font-medium">Activar plan manualmente</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">Plan</label>
+                <select value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })} className="w-full px-3 py-2 bg-muted border rounded-lg text-sm">
+                  <option value="basico">Básico</option>
+                  <option value="profesional">Profesional</option>
+                  <option value="estudio">Estudio</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">Duración (días)</label>
+                <input type="number" value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} min={1} max={365} className="w-full px-3 py-2 bg-muted border rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">Motivo</label>
+                <input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Opcional" className="w-full px-3 py-2 bg-muted border rounded-lg text-sm" />
+              </div>
+            </div>
+            <Button size="sm" onClick={() => handleAction("activate", { plan: form.plan, duration_days: form.duration_days, reason: form.reason })} disabled={actionLoading}>
+              {actionLoading ? "Procesando..." : "Activar"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Extend form */}
+      {showExtend && (
+        <Card>
+          <CardContent className="pt-5 space-y-3">
+            <p className="text-xs font-medium">Extender suscripción</p>
+            <div className="flex gap-3 items-end">
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">Días adicionales</label>
+                <input type="number" value={form.days} onChange={(e) => setForm({ ...form, days: Number(e.target.value) })} min={1} max={365} className="w-32 px-3 py-2 bg-muted border rounded-lg text-sm" />
+              </div>
+              <Button size="sm" onClick={() => handleAction("extend", { days: form.days, reason: "Extensión admin" })} disabled={actionLoading}>
+                {actionLoading ? "Procesando..." : "Extender"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Coupon form */}
+      {showCoupon && (
+        <Card>
+          <CardContent className="pt-5 space-y-3">
+            <p className="text-xs font-medium">Aplicar cupón promocional</p>
+            <div className="flex gap-3 items-end">
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-1">Código del cupón</label>
+                <input value={form.coupon_code} onChange={(e) => setForm({ ...form, coupon_code: e.target.value.toUpperCase() })} placeholder="PROMO-2026" className="w-48 px-3 py-2 bg-muted border rounded-lg text-sm font-mono" />
+              </div>
+              <Button size="sm" onClick={() => handleAction("apply_coupon", { coupon_code: form.coupon_code })} disabled={actionLoading || !form.coupon_code}>
+                {actionLoading ? "Aplicando..." : "Aplicar"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* History */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Historial de suscripción</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <p className="text-xs text-muted-foreground text-center py-8">Cargando...</p>
+          ) : history.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-xs text-muted-foreground">Sin historial de cambios</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {history.map((h) => (
+                <div key={h.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium capitalize">{h.action}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {h.plan_from && h.plan_to ? `${h.plan_from} → ${h.plan_to}` : ""}
+                      {h.reason ? ` · ${h.reason}` : ""}
+                      {h.coupon_code ? ` · Cupón: ${h.coupon_code}` : ""}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {new Date(h.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 const QUERY_TYPE_LABELS = {
   BUSQUEDA_LEGAL: "Búsqueda legal",
   CONSULTA_GENERAL: "General",
@@ -200,6 +387,7 @@ export default function UserDetailPage() {
 
   const TABS = [
     { key: "overview", label: "Resumen", icon: BarChart3 },
+    { key: "subscription", label: "Suscripción", icon: CreditCard },
     { key: "conversations", label: `Conversaciones (${detail.conversations?.length || 0})`, icon: MessageSquare },
     { key: "documents", label: `Documentos (${detail.documents?.length || 0})`, icon: FileText },
     { key: "activity", label: "Actividad", icon: ScrollText },
@@ -373,6 +561,9 @@ export default function UserDetailPage() {
           </Card>
         </div>
       )}
+
+      {/* Tab: Subscription */}
+      {tab === "subscription" && <SubscriptionTab user={user} userId={id} onRefresh={() => { setLoading(true); apiFetch(`/api/admin/users/${id}/detail`).then(setDetail).finally(() => setLoading(false)); }} />}
 
       {/* Tab: Conversations */}
       {tab === "conversations" && (
