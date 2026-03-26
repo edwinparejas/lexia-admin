@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp, ExternalLink } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -308,6 +309,9 @@ export default function UsersPage() {
                       </div>
                     ) : (
                       <div className="flex gap-1 justify-end">
+                        <Link href={`/users/${u.id}`}>
+                          <Button size="sm" variant="ghost"><ExternalLink className="h-3 w-3 mr-1" />Detalle</Button>
+                        </Link>
                         <Button size="sm" variant="ghost" onClick={() => { setEditingId(u.id); setEditPlan(u.plan || "trial"); }}>Editar</Button>
                         <Button size="sm" variant="ghost" className={u.is_banned ? "text-green-400" : "text-destructive"} onClick={() => handleBan(u.id, !u.is_banned)}>
                           {u.is_banned ? "Activar" : "Suspender"}

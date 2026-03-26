@@ -206,7 +206,7 @@ export default function IndexingPage() {
           </div>
 
           {/* Upload button */}
-          <Button onClick={() => handleUpload()} disabled={uploading} className="w-full">
+          <Button onClick={() => handleUpload()} disabled={uploading} className="w-auto">
             {uploading ? (
               <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Procesando...</>
             ) : (
