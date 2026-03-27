@@ -427,78 +427,126 @@ function FormSection({ section, data, onSave }) {
   if (section.type === "doc_detection") {
     const minMatches = values?.min_matches ?? 3;
     const patterns = Array.isArray(values?.patterns) ? values.patterns : [];
-    const PATTERN_EXAMPLES = {
-      "cl[aá]usula": "Detecta cláusulas contractuales (Primera, Segunda...)",
-      "conste por|por el presente": "Fórmulas notariales de inicio de documento",
-      "comparece|otorgante|suscrito": "Identificación de partes firmantes",
-      "firma|firman|suscribe": "Sección de firmas del documento",
-      "art[ií]culo|numeral": "Referencias a artículos legales",
-      "demanda de|recurso de|escrito de|carta notarial": "Tipos de escritos legales",
-    };
 
-    function findExample(pattern) {
-      for (const [key, desc] of Object.entries(PATTERN_EXAMPLES)) {
-        if (pattern.toLowerCase().includes(key.split("|")[0].replace(/[\[\]\\]/g, ""))) return desc;
+    // Map regex patterns to human-readable descriptions
+    const PATTERN_INFO = [
+      { match: "cl[aá]usula", name: "Cláusulas contractuales", desc: "Detecta enumeración de cláusulas típicas en contratos", examples: ["Cláusula Primera", "Cláusula Segunda", "Cláusula 5"], color: "#3b82f6" },
+      { match: "conste por|por el presente", name: "Fórmulas notariales", desc: "Frases formales que inician documentos legales notariales", examples: ["Conste por el presente", "Por el presente documento", "Las partes convienen"], color: "#8b5cf6" },
+      { match: "comparece|otorgante|suscrito", name: "Partes firmantes", desc: "Identifica la sección donde se nombran las partes del documento", examples: ["Comparecen los señores", "El otorgante declara", "El suscrito abogado"], color: "#06b6d4" },
+      { match: "\\[\\[", name: "Campos para completar", desc: "Placeholders entre corchetes que el usuario debe reemplazar", examples: ["[Nombre del demandante]", "[N° de DNI]", "[Dirección]"], color: "#f59e0b" },
+      { match: "firma|firman|suscribe", name: "Sección de firmas", desc: "Detecta la zona de firmas al final del documento", examples: ["Firman las partes:", "Suscriben en señal de conformidad"], color: "#10b981" },
+      { match: "^#", name: "Títulos y secciones", desc: "Encabezados con formato Markdown que estructuran el documento", examples: ["# CONTRATO DE LOCACIÓN", "## ANTECEDENTES", "### Fundamentos de Derecho"], color: "#6366f1" },
+      { match: "art[ií]culo|numeral", name: "Referencias legales", desc: "Citas a artículos y numerales de leyes y códigos", examples: ["Artículo 1969", "Numeral 4 del Artículo 2", "Art. 424 del CPC"], color: "#ec4899" },
+      { match: "demanda de|recurso de|escrito de|carta notarial", name: "Tipos de escritos", desc: "Nombres de documentos legales específicos", examples: ["Demanda de alimentos", "Recurso de apelación", "Carta notarial"], color: "#ef4444" },
+    ];
+
+    function getPatternInfo(pattern) {
+      for (const info of PATTERN_INFO) {
+        if (pattern.includes(info.match)) return info;
       }
-      return null;
+      return { name: "Patrón personalizado", desc: "Patrón regex definido por el administrador", examples: [], color: "#71717a" };
     }
 
     return (
       <ConfigCard section={section} icon={Icon} open={open} onToggle={() => setOpen(!open)} saved={saved}>
         {open && (
-          <div className="space-y-4">
-            <div className="rounded-lg border p-3 space-y-2">
-              <label className="text-xs font-medium">Coincidencias mínimas</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={minMatches}
-                  min={1}
-                  max={10}
-                  onChange={(e) => setValues({ ...values, min_matches: parseInt(e.target.value) || 1 })}
-                  className="w-20 px-3 py-1.5 bg-muted border rounded-lg text-sm font-mono focus:border-primary focus:outline-none"
-                />
-                <span className="text-[10px] text-muted-foreground">
-                  De {patterns.length} patrones, al menos {minMatches} deben coincidir para considerar el texto como documento legal.
-                </span>
+          <div className="space-y-5">
+            {/* How it works explanation */}
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
+              <p className="text-[11px] font-medium" style={{ color: "#3b82f6" }}>Como funciona la detección</p>
+              <div className="text-[10px] text-muted-foreground space-y-1">
+                <p>1. La IA genera una respuesta al usuario</p>
+                <p>2. El sistema revisa el texto buscando cada uno de los patrones de abajo</p>
+                <p>3. Si al menos <strong>{minMatches} de {patterns.length}</strong> patrones coinciden, se considera que la respuesta es un documento legal</p>
+                <p>4. Se activan automáticamente los botones de <strong>Guardar</strong>, <strong>Descargar Word</strong> y <strong>Descargar PDF</strong></p>
               </div>
             </div>
 
+            {/* Min matches */}
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium">Coincidencias mínimas requeridas</label>
+                <span className="text-[10px] text-muted-foreground">{minMatches} de {patterns.length} patrones</span>
+              </div>
+              <input
+                type="range"
+                value={minMatches}
+                min={1}
+                max={Math.max(patterns.length, 1)}
+                onChange={(e) => setValues({ ...values, min_matches: parseInt(e.target.value) || 1 })}
+                className="w-full accent-primary"
+              />
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>1 (muy sensible: detecta casi todo)</span>
+                <span>{patterns.length} (muy estricto: casi nunca detecta)</span>
+              </div>
+            </div>
+
+            {/* Patterns */}
             <div className="space-y-2">
-              <label className="text-xs font-medium">Patrones regex ({patterns.length})</label>
-              {patterns.map((p, i) => {
-                const example = findExample(p);
-                return (
-                  <div key={i} className="rounded-lg border p-2.5 space-y-1">
-                    <div className="flex gap-2">
-                      <span className="text-[10px] text-muted-foreground pt-1.5 w-4 shrink-0">{i + 1}.</span>
-                      <input
-                        value={p}
-                        onChange={(e) => {
-                          const next = [...patterns];
-                          next[i] = e.target.value;
-                          setValues({ ...values, patterns: next });
-                        }}
-                        className="flex-1 px-3 py-1.5 bg-muted border rounded-lg text-xs font-mono focus:border-primary focus:outline-none"
-                        spellCheck={false}
-                      />
-                      <button onClick={() => setValues({ ...values, patterns: patterns.filter((_, j) => j !== i) })} className="px-2 text-destructive hover:text-destructive/80 text-sm">×</button>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium">Patrones de detección ({patterns.length})</label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                {patterns.map((p, i) => {
+                  const info = getPatternInfo(p);
+                  return (
+                    <div key={i} className="rounded-lg border p-3 space-y-2 transition-colors hover:border-foreground/20">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: info.color }} />
+                          <span className="text-xs font-medium">{info.name}</span>
+                        </div>
+                        <button
+                          onClick={() => setValues({ ...values, patterns: patterns.filter((_, j) => j !== i) })}
+                          className="text-muted-foreground hover:text-destructive text-xs shrink-0 transition-colors"
+                          title="Eliminar patrón"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{info.desc}</p>
+                      {info.examples.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {info.examples.map((ex, j) => (
+                            <span key={j} className="px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ background: `${info.color}15`, color: info.color }}>
+                              {ex}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <details className="group">
+                        <summary className="text-[9px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                          Ver expresión regular (avanzado)
+                        </summary>
+                        <input
+                          value={p}
+                          onChange={(e) => {
+                            const next = [...patterns];
+                            next[i] = e.target.value;
+                            setValues({ ...values, patterns: next });
+                          }}
+                          className="mt-1.5 w-full px-2.5 py-1.5 bg-muted border rounded text-[10px] font-mono focus:border-primary focus:outline-none"
+                          spellCheck={false}
+                        />
+                      </details>
                     </div>
-                    {example && <p className="text-[10px] text-muted-foreground ml-6">{example}</p>}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
               <button
-                onClick={() => setValues({ ...values, patterns: [...patterns, "(?i)nuevo_patron"] })}
-                className="text-xs text-primary hover:text-primary/80"
+                onClick={() => setValues({ ...values, patterns: [...patterns, "(?i)(nuevo_texto)"] })}
+                className="text-xs text-primary hover:text-primary/80 transition-colors"
               >
-                + Agregar patrón
+                + Agregar nuevo patrón
               </button>
             </div>
 
             <Button size="sm" onClick={handleSave} disabled={saving}>
               <Save className="h-3 w-3 mr-1" />
-              {saving ? "Guardando..." : "Guardar"}
+              {saving ? "Guardando..." : "Guardar cambios"}
             </Button>
           </div>
         )}
