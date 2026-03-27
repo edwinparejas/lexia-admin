@@ -586,45 +586,52 @@ function FormSection({ section, data, onSave }) {
     <ConfigCard section={section} icon={Icon} open={open} onToggle={() => setOpen(!open)} saved={saved}>
       {open && (
         <div className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {section.fields.map((field) => {
               const val = section.nested ? getNestedValue(values, field.key) : values[field.key];
               const err = errors[field.key];
               const dynHint = field.dynamicHint && val != null ? field.dynamicHint(val) : null;
+              const fullWidth = field.type === "boolean" && field.messageField;
               return (
-                <div key={field.key}>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-medium">{field.label}</label>
-                    {field.min != null && <span className="text-xs text-foreground/60">{field.min} — {field.max}</span>}
-                  </div>
+                <div key={field.key} className={fullWidth ? "md:col-span-2" : ""}>
                   {field.type === "boolean" ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleChange(field.key, !val, field)}
-                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${val ? "bg-green-500" : "bg-destructive/70"}`}
-                        >
-                          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${val ? "translate-x-6" : "translate-x-1"}`} />
-                        </button>
-                        <span className={`text-xs font-medium ${val ? "text-green-500" : "text-destructive"}`}>
-                          {val ? "Activo" : "Inactivo"}
-                        </span>
+                    <div className={`rounded-lg border p-4 space-y-3 ${!val ? "border-destructive/20 bg-destructive/5" : "border-green-500/20 bg-green-500/5"}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <label className="text-sm font-medium">{field.label}</label>
+                          {field.hint && <p className="text-xs text-foreground/60 leading-relaxed">{field.hint}</p>}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className={`text-xs font-medium ${val ? "text-green-500" : "text-destructive"}`}>
+                            {val ? "Activo" : "Inactivo"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleChange(field.key, !val, field)}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${val ? "bg-green-500" : "bg-destructive/70"}`}
+                          >
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${val ? "translate-x-6" : "translate-x-1"}`} />
+                          </button>
+                        </div>
                       </div>
                       {field.messageField && (
-                        <div className="pl-1">
-                          <label className="text-xs text-foreground/60">{field.messageLabel || "Mensaje"}</label>
+                        <div>
+                          <label className="text-xs font-medium text-foreground/70 mb-1 block">{field.messageLabel || "Mensaje"}</label>
                           <textarea
                             value={values[field.messageField] ?? ""}
                             onChange={(e) => handleChange(field.messageField, e.target.value, {})}
-                            rows={3}
-                            className={`w-full mt-1 px-3 py-2 bg-muted border rounded-lg text-sm leading-relaxed focus:outline-none resize-y ${!val ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"}`}
+                            rows={2}
+                            className={`w-full px-4 py-3 bg-muted border rounded-lg text-sm leading-relaxed focus:outline-none resize-y ${!val ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"}`}
                             placeholder="Mensaje que verán los usuarios cuando esté inactivo..."
                           />
                         </div>
                       )}
                     </div>
                   ) : field.type === "select" ? (
+                    <>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium">{field.label}</label>
+                    </div>
                     <select
                       value={val || ""}
                       onChange={(e) => handleChange(field.key, e.target.value, field)}
@@ -632,7 +639,13 @@ function FormSection({ section, data, onSave }) {
                     >
                       {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
+                    </>
                   ) : (
+                    <>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium">{field.label}</label>
+                      {field.min != null && <span className="text-xs text-foreground/60">{field.min} — {field.max}</span>}
+                    </div>
                     <input
                       type={field.type === "number" ? "number" : "text"}
                       value={val ?? ""}
@@ -641,9 +654,10 @@ function FormSection({ section, data, onSave }) {
                       onChange={(e) => handleChange(field.key, field.type === "number" ? Number(e.target.value) : e.target.value, field)}
                       className={`w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none ${err ? "border-destructive focus:border-destructive" : "focus:border-primary"}`}
                     />
+                    </>
                   )}
                   {err && <p className="text-xs text-destructive mt-0.5">{err}</p>}
-                  {field.hint && <p className="text-xs text-foreground/60 mt-1 leading-relaxed">{field.hint}</p>}
+                  {field.type !== "boolean" && field.hint && <p className="text-xs text-foreground/60 mt-1 leading-relaxed">{field.hint}</p>}
                   {dynHint && <p className="text-xs text-amber-400 mt-0.5">{dynHint}</p>}
                 </div>
               );
