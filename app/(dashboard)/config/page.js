@@ -170,7 +170,7 @@ const CONFIG_SECTIONS = [
   {
     key: "feature_access",
     label: "Acceso a Features Premium",
-    desc: "Qué planes tienen acceso a funcionalidades avanzadas.",
+    desc: "Controla qué planes pueden usar el análisis profundo (CrewAI multi-agente). Los planes no incluidos solo pueden hacer consultas simples y búsqueda legal.",
     category: "Negocio",
     type: "json",
   },
@@ -184,9 +184,9 @@ const CONFIG_SECTIONS = [
   {
     key: "document_detection",
     label: "Detección de Documentos",
-    desc: "Regex para identificar cuando la IA genera un documento legal.",
+    desc: "Cuando la IA responde, el sistema revisa si el texto contiene un documento legal (contrato, demanda, etc.) usando estos patrones regex. Si se cumplen al menos [min_matches] patrones, se activan las opciones de Guardar y Descargar.",
     category: "IA",
-    type: "json",
+    type: "doc_detection",
   },
 ];
 
@@ -417,6 +417,89 @@ function FormSection({ section, data, onSave }) {
                 {saving ? "Guardando..." : "Guardar"}
               </Button>
             </div>
+          </div>
+        )}
+      </ConfigCard>
+    );
+  }
+
+  // Document detection editor
+  if (section.type === "doc_detection") {
+    const minMatches = values?.min_matches ?? 3;
+    const patterns = Array.isArray(values?.patterns) ? values.patterns : [];
+    const PATTERN_EXAMPLES = {
+      "cl[aá]usula": "Detecta cláusulas contractuales (Primera, Segunda...)",
+      "conste por|por el presente": "Fórmulas notariales de inicio de documento",
+      "comparece|otorgante|suscrito": "Identificación de partes firmantes",
+      "firma|firman|suscribe": "Sección de firmas del documento",
+      "art[ií]culo|numeral": "Referencias a artículos legales",
+      "demanda de|recurso de|escrito de|carta notarial": "Tipos de escritos legales",
+    };
+
+    function findExample(pattern) {
+      for (const [key, desc] of Object.entries(PATTERN_EXAMPLES)) {
+        if (pattern.toLowerCase().includes(key.split("|")[0].replace(/[\[\]\\]/g, ""))) return desc;
+      }
+      return null;
+    }
+
+    return (
+      <ConfigCard section={section} icon={Icon} open={open} onToggle={() => setOpen(!open)} saved={saved}>
+        {open && (
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 space-y-2">
+              <label className="text-xs font-medium">Coincidencias mínimas</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={minMatches}
+                  min={1}
+                  max={10}
+                  onChange={(e) => setValues({ ...values, min_matches: parseInt(e.target.value) || 1 })}
+                  className="w-20 px-3 py-1.5 bg-muted border rounded-lg text-sm font-mono focus:border-primary focus:outline-none"
+                />
+                <span className="text-[10px] text-muted-foreground">
+                  De {patterns.length} patrones, al menos {minMatches} deben coincidir para considerar el texto como documento legal.
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Patrones regex ({patterns.length})</label>
+              {patterns.map((p, i) => {
+                const example = findExample(p);
+                return (
+                  <div key={i} className="rounded-lg border p-2.5 space-y-1">
+                    <div className="flex gap-2">
+                      <span className="text-[10px] text-muted-foreground pt-1.5 w-4 shrink-0">{i + 1}.</span>
+                      <input
+                        value={p}
+                        onChange={(e) => {
+                          const next = [...patterns];
+                          next[i] = e.target.value;
+                          setValues({ ...values, patterns: next });
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-muted border rounded-lg text-xs font-mono focus:border-primary focus:outline-none"
+                        spellCheck={false}
+                      />
+                      <button onClick={() => setValues({ ...values, patterns: patterns.filter((_, j) => j !== i) })} className="px-2 text-destructive hover:text-destructive/80 text-sm">×</button>
+                    </div>
+                    {example && <p className="text-[10px] text-muted-foreground ml-6">{example}</p>}
+                  </div>
+                );
+              })}
+              <button
+                onClick={() => setValues({ ...values, patterns: [...patterns, "(?i)nuevo_patron"] })}
+                className="text-xs text-primary hover:text-primary/80"
+              >
+                + Agregar patrón
+              </button>
+            </div>
+
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              <Save className="h-3 w-3 mr-1" />
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
           </div>
         )}
       </ConfigCard>
