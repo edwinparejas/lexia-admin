@@ -349,6 +349,150 @@ function LlmSection({ section, data, onSave, availableModels }) {
   );
 }
 
+const SAMPLE_LEGAL_TEXT = `CONTRATO DE LOCACIÓN DE SERVICIOS
+
+Conste por el presente documento, el contrato de locación de servicios que celebran:
+
+De una parte, [Nombre del contratante], identificado con DNI N° [Número], con domicilio en [Dirección], a quien en adelante se denominará EL COMITENTE.
+
+De otra parte, [Nombre del locador], identificado con DNI N° [Número], con domicilio en [Dirección], a quien en adelante se denominará EL LOCADOR.
+
+CLÁUSULA PRIMERA: OBJETO DEL CONTRATO
+El presente contrato tiene por objeto la prestación de servicios profesionales conforme al Artículo 1764 del Código Civil.
+
+CLÁUSULA SEGUNDA: PLAZO
+El plazo de vigencia será de 12 meses calendario.
+
+CLÁUSULA TERCERA: CONTRAPRESTACIÓN
+EL COMITENTE se obliga a pagar la suma de S/ [Monto] mensuales.
+
+En señal de conformidad, las partes firman el presente documento:
+
+Firma: ________________________
+EL COMITENTE
+
+Firma: ________________________
+EL LOCADOR`;
+
+function RegexTester({ patterns, minMatches, patternInfoFn }) {
+  const [testText, setTestText] = useState("");
+  const [showTester, setShowTester] = useState(false);
+
+  const results = useMemo(() => {
+    if (!testText.trim()) return { matches: [], totalMatched: 0, isDocument: false };
+    const matches = patterns.map((p, i) => {
+      try {
+        const regex = new RegExp(p, "gi");
+        const found = testText.match(regex) || [];
+        return { index: i, pattern: p, info: patternInfoFn(p), found, count: found.length };
+      } catch {
+        return { index: i, pattern: p, info: patternInfoFn(p), found: [], count: 0, error: true };
+      }
+    });
+    const totalMatched = matches.filter((m) => m.count > 0).length;
+    return { matches, totalMatched, isDocument: totalMatched >= minMatches };
+  }, [testText, patterns, minMatches, patternInfoFn]);
+
+  // Build highlighted text
+  const highlightedHtml = useMemo(() => {
+    if (!testText.trim() || results.totalMatched === 0) return null;
+    let html = testText.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    for (const m of results.matches) {
+      if (m.count === 0 || m.error) continue;
+      try {
+        const regex = new RegExp(m.pattern, "gi");
+        html = html.replace(regex, (match) => `<mark style="background:${m.info.color}25;color:${m.info.color};border-radius:3px;padding:0 2px;font-weight:600">${match}</mark>`);
+      } catch {}
+    }
+    return html;
+  }, [testText, results]);
+
+  return (
+    <div className="rounded-lg border border-dashed p-4 space-y-3">
+      <button
+        onClick={() => setShowTester(!showTester)}
+        className="flex items-center gap-2 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+      >
+        <SearchIcon className="h-3.5 w-3.5" />
+        {showTester ? "Ocultar probador de patrones" : "Probar patrones con un texto de ejemplo"}
+      </button>
+
+      {showTester && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-foreground/60 flex-1">
+              Pega o escribe un texto y observa qué patrones coinciden y dónde.
+            </p>
+            <button
+              onClick={() => setTestText(SAMPLE_LEGAL_TEXT)}
+              className="text-xs text-primary hover:text-primary/80 transition-colors shrink-0 border border-primary/30 rounded px-2 py-1"
+            >
+              Usar texto de ejemplo
+            </button>
+          </div>
+
+          <textarea
+            value={testText}
+            onChange={(e) => setTestText(e.target.value)}
+            rows={6}
+            className="w-full px-4 py-3 bg-muted border rounded-lg text-sm leading-relaxed focus:border-primary focus:outline-none resize-y"
+            placeholder="Pega aquí un texto generado por la IA para ver si sería detectado como documento legal..."
+          />
+
+          {testText.trim() && (
+            <>
+              {/* Result summary */}
+              <div className={`rounded-lg p-3 flex items-center gap-3 ${results.isDocument ? "bg-green-500/10 border border-green-500/20" : "bg-foreground/5 border"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${results.isDocument ? "bg-green-500/20 text-green-500" : "bg-foreground/10 text-foreground/40"}`}>
+                  {results.totalMatched}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">
+                    {results.isDocument
+                      ? "Detectado como documento legal"
+                      : "NO detectado como documento"}
+                  </p>
+                  <p className="text-xs text-foreground/60">
+                    {results.totalMatched} de {patterns.length} patrones coinciden (mínimo requerido: {minMatches})
+                  </p>
+                </div>
+              </div>
+
+              {/* Per-pattern results */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {results.matches.map((m) => (
+                  <div key={m.index} className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${m.count > 0 ? "border-green-500/20 bg-green-500/5" : "opacity-50"}`}>
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: m.count > 0 ? m.info.color : "#71717a" }} />
+                    <span className="text-xs font-medium flex-1">{m.info.name}</span>
+                    {m.error ? (
+                      <span className="text-xs text-destructive">Regex inválido</span>
+                    ) : m.count > 0 ? (
+                      <span className="text-xs font-mono font-medium" style={{ color: m.info.color }}>{m.count} coincidencia{m.count > 1 ? "s" : ""}</span>
+                    ) : (
+                      <span className="text-xs text-foreground/40">sin coincidencias</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Highlighted preview */}
+              {highlightedHtml && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium">Vista previa con coincidencias resaltadas:</p>
+                  <div
+                    className="rounded-lg border bg-muted p-4 text-sm leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto"
+                    dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormSection({ section, data, onSave }) {
   const [values, setValues] = useState(data || {});
   const [saving, setSaving] = useState(false);
@@ -543,6 +687,9 @@ function FormSection({ section, data, onSave }) {
                 + Agregar nuevo patrón
               </button>
             </div>
+
+            {/* Regex tester */}
+            <RegexTester patterns={patterns} minMatches={minMatches} patternInfoFn={getPatternInfo} />
 
             <Button size="sm" onClick={handleSave} disabled={saving}>
               <Save className="h-3 w-3 mr-1" />
