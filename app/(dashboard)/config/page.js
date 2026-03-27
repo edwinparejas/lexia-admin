@@ -255,7 +255,7 @@ function LlmSection({ section, data, onSave, availableModels }) {
                 <DollarSign className="h-3 w-3" /> Ver tabla de costos por modelo
               </summary>
               <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-[11px]">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-1 pr-3">Proveedor</th>
@@ -268,15 +268,15 @@ function LlmSection({ section, data, onSave, availableModels }) {
                   <tbody>
                     {modelOptions.map((m) => (
                       <tr key={m.id} className="border-b last:border-0">
-                        <td className="py-1.5 pr-3 text-muted-foreground">{m.provider}</td>
+                        <td className="py-1.5 pr-3 text-foreground/60">{m.provider}</td>
                         <td className="py-1.5 pr-3 font-mono">{m.label}</td>
                         <td className="py-1.5 pr-3 text-right font-mono">{m.free ? "Gratis" : `$${m.costIn}`}</td>
                         <td className="py-1.5 pr-3 text-right font-mono">{m.free ? "Gratis" : `$${m.costOut}`}</td>
                         <td className="py-1.5 text-center">
                           {m.configured ? (
-                            <Badge className="bg-green-500/10 text-green-400 text-[9px]">Listo</Badge>
+                            <Badge className="bg-green-500/10 text-green-400 text-xs">Listo</Badge>
                           ) : (
-                            <Badge className="bg-amber-500/10 text-amber-400 text-[9px]">Sin API key</Badge>
+                            <Badge className="bg-amber-500/10 text-amber-400 text-xs">Sin API key</Badge>
                           )}
                         </td>
                       </tr>
@@ -301,7 +301,7 @@ function LlmSection({ section, data, onSave, availableModels }) {
                     <select value={currentVal} onChange={(e) => setValues({ ...values, [field.key]: e.target.value })} className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:border-primary focus:outline-none">
                       {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
-                    <p className="text-[10px] text-muted-foreground mt-1">{field.hint}</p>
+                    <p className="text-xs text-foreground/60 mt-1">{field.hint}</p>
                   </div>
                 );
               }
@@ -310,7 +310,7 @@ function LlmSection({ section, data, onSave, availableModels }) {
                 <div key={field.key} className="rounded-lg border p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium">{field.label}</label>
-                    {field.docs && <a href={field.docs} target="_blank" rel="noopener" className="text-[9px] text-primary hover:underline flex items-center gap-0.5"><Info className="h-2.5 w-2.5" />Docs</a>}
+                    {field.docs && <a href={field.docs} target="_blank" rel="noopener" className="text-xs text-primary hover:underline flex items-center gap-0.5"><Info className="h-2.5 w-2.5" />Docs</a>}
                   </div>
                   <select
                     value={currentVal}
@@ -328,9 +328,9 @@ function LlmSection({ section, data, onSave, availableModels }) {
                       </optgroup>
                     ))}
                   </select>
-                  <p className="text-[10px] text-muted-foreground">{field.hint}</p>
+                  <p className="text-xs text-foreground/60">{field.hint}</p>
                   {selected && field.callsPerQuery && !selected.free && (
-                    <p className="text-[10px] text-amber-400">
+                    <p className="text-xs text-amber-400">
                       ≈ ${((selected.costIn * 1000 + selected.costOut * 500) / 1_000_000 * field.callsPerQuery).toFixed(4)} USD/consulta ({field.callsPerQuery} llamada{field.callsPerQuery > 1 ? "s" : ""})
                     </p>
                   )}
@@ -453,8 +453,8 @@ function FormSection({ section, data, onSave }) {
           <div className="space-y-5">
             {/* How it works explanation */}
             <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-2">
-              <p className="text-[11px] font-medium" style={{ color: "#3b82f6" }}>Como funciona la detección</p>
-              <div className="text-[10px] text-muted-foreground space-y-1">
+              <p className="text-xs font-medium" style={{ color: "#3b82f6" }}>Como funciona la detección</p>
+              <div className="text-xs text-foreground/60 space-y-1">
                 <p>1. La IA genera una respuesta al usuario</p>
                 <p>2. El sistema revisa el texto buscando cada uno de los patrones de abajo</p>
                 <p>3. Si al menos <strong>{minMatches} de {patterns.length}</strong> patrones coinciden, se considera que la respuesta es un documento legal</p>
@@ -466,7 +466,7 @@ function FormSection({ section, data, onSave }) {
             <div className="rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium">Coincidencias mínimas requeridas</label>
-                <span className="text-[10px] text-muted-foreground">{minMatches} de {patterns.length} patrones</span>
+                <span className="text-xs text-foreground/60">{minMatches} de {patterns.length} patrones</span>
               </div>
               <input
                 type="range"
@@ -476,7 +476,7 @@ function FormSection({ section, data, onSave }) {
                 onChange={(e) => setValues({ ...values, min_matches: parseInt(e.target.value) || 1 })}
                 className="w-full accent-primary"
               />
-              <div className="flex justify-between text-[9px] text-muted-foreground">
+              <div className="flex justify-between text-xs text-foreground/60">
                 <span>1 (muy sensible: detecta casi todo)</span>
                 <span>{patterns.length} (muy estricto: casi nunca detecta)</span>
               </div>
@@ -500,24 +500,24 @@ function FormSection({ section, data, onSave }) {
                         </div>
                         <button
                           onClick={() => setValues({ ...values, patterns: patterns.filter((_, j) => j !== i) })}
-                          className="text-muted-foreground hover:text-destructive text-xs shrink-0 transition-colors"
+                          className="text-foreground/60 hover:text-destructive text-xs shrink-0 transition-colors"
                           title="Eliminar patrón"
                         >
                           ×
                         </button>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">{info.desc}</p>
+                      <p className="text-xs text-foreground/60">{info.desc}</p>
                       {info.examples.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {info.examples.map((ex, j) => (
-                            <span key={j} className="px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ background: `${info.color}15`, color: info.color }}>
+                            <span key={j} className="px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: `${info.color}15`, color: info.color }}>
                               {ex}
                             </span>
                           ))}
                         </div>
                       )}
                       <details className="group">
-                        <summary className="text-[9px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                        <summary className="text-xs text-foreground/60 cursor-pointer hover:text-foreground transition-colors">
                           Ver expresión regular (avanzado)
                         </summary>
                         <input
@@ -527,7 +527,7 @@ function FormSection({ section, data, onSave }) {
                             next[i] = e.target.value;
                             setValues({ ...values, patterns: next });
                           }}
-                          className="mt-1.5 w-full px-2.5 py-1.5 bg-muted border rounded text-[10px] font-mono focus:border-primary focus:outline-none"
+                          className="mt-1.5 w-full px-2.5 py-1.5 bg-muted border rounded text-xs font-mono focus:border-primary focus:outline-none"
                           spellCheck={false}
                         />
                       </details>
@@ -565,7 +565,7 @@ function FormSection({ section, data, onSave }) {
             <textarea
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
-              className="w-full h-32 p-3 bg-muted border rounded-lg font-mono text-xs focus:border-primary focus:outline-none resize-y"
+              className="w-full min-h-[200px] p-3 bg-muted border rounded-lg font-mono text-sm leading-relaxed focus:border-primary focus:outline-none resize-y"
               spellCheck={false}
             />
             <Button size="sm" onClick={async () => {
@@ -595,7 +595,7 @@ function FormSection({ section, data, onSave }) {
                 <div key={field.key}>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium">{field.label}</label>
-                    {field.min != null && <span className="text-[9px] text-muted-foreground">{field.min} — {field.max}</span>}
+                    {field.min != null && <span className="text-xs text-foreground/60">{field.min} — {field.max}</span>}
                   </div>
                   {field.type === "boolean" ? (
                     <div className="space-y-2">
@@ -613,12 +613,12 @@ function FormSection({ section, data, onSave }) {
                       </div>
                       {field.messageField && (
                         <div className="pl-1">
-                          <label className="text-[10px] text-muted-foreground">{field.messageLabel || "Mensaje"}</label>
+                          <label className="text-xs text-foreground/60">{field.messageLabel || "Mensaje"}</label>
                           <textarea
                             value={values[field.messageField] ?? ""}
                             onChange={(e) => handleChange(field.messageField, e.target.value, {})}
-                            rows={2}
-                            className={`w-full mt-1 px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none ${!val ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"}`}
+                            rows={3}
+                            className={`w-full mt-1 px-3 py-2 bg-muted border rounded-lg text-sm leading-relaxed focus:outline-none resize-y ${!val ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"}`}
                             placeholder="Mensaje que verán los usuarios cuando esté inactivo..."
                           />
                         </div>
@@ -642,9 +642,9 @@ function FormSection({ section, data, onSave }) {
                       className={`w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none ${err ? "border-destructive focus:border-destructive" : "focus:border-primary"}`}
                     />
                   )}
-                  {err && <p className="text-[10px] text-destructive mt-0.5">{err}</p>}
-                  {field.hint && <p className="text-[10px] text-muted-foreground mt-0.5">{field.hint}</p>}
-                  {dynHint && <p className="text-[10px] text-amber-400 mt-0.5">{dynHint}</p>}
+                  {err && <p className="text-xs text-destructive mt-0.5">{err}</p>}
+                  {field.hint && <p className="text-xs text-foreground/60 mt-1 leading-relaxed">{field.hint}</p>}
+                  {dynHint && <p className="text-xs text-amber-400 mt-0.5">{dynHint}</p>}
                 </div>
               );
             })}
@@ -669,12 +669,12 @@ function ConfigCard({ section, icon: Icon, open, onToggle, saved, children }) {
           </div>
           <div>
             <h3 className="text-sm font-medium">{section.label}</h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{section.desc}</p>
+            <p className="text-xs text-foreground/60 mt-0.5 leading-relaxed">{section.desc}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {saved && <Badge className="bg-green-500/10 text-green-400 text-[10px]">Guardado</Badge>}
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          {saved && <Badge className="bg-green-500/10 text-green-400 text-xs">Guardado</Badge>}
+          {open ? <ChevronUp className="h-4 w-4 text-foreground/60" /> : <ChevronDown className="h-4 w-4 text-foreground/60" />}
         </div>
       </button>
       {open && <div className="px-5 pb-5 border-t pt-4">{children}</div>}
@@ -713,8 +713,8 @@ export default function AdminConfigPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <Sparkles className="h-8 w-8 text-muted-foreground animate-pulse mx-auto" />
-          <p className="text-sm text-muted-foreground mt-2">Cargando configuración...</p>
+          <Sparkles className="h-8 w-8 text-foreground/60 animate-pulse mx-auto" />
+          <p className="text-sm text-foreground/60 mt-2">Cargando configuración...</p>
         </div>
       </div>
     );
@@ -726,7 +726,7 @@ export default function AdminConfigPage() {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Configuración del Sistema</h1>
-        <p className="text-sm text-muted-foreground">Los cambios se aplican en tiempo real (cache 5 min). No requiere redeploy.</p>
+        <p className="text-sm text-foreground/60">Los cambios se aplican en tiempo real (cache 5 min). No requiere redeploy.</p>
       </div>
 
       {/* Category tabs */}
