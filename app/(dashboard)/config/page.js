@@ -35,10 +35,9 @@ const CONFIG_SECTIONS = [
     desc: "Llaves de emergencia para activar/desactivar funcionalidades del sistema.",
     category: "Seguridad",
     fields: [
-      { key: "llm_enabled", label: "LLM habilitado", type: "boolean", hint: "Si se desactiva, el chat responde con mensaje de mantenimiento. No se gastan tokens." },
-      { key: "registration_enabled", label: "Registro habilitado", type: "boolean", hint: "Si se desactiva, nadie puede crear cuentas nuevas." },
+      { key: "llm_enabled", label: "LLM habilitado", type: "boolean", hint: "Si se desactiva, el chat responde con mensaje de mantenimiento. No se gastan tokens.", messageField: "maintenance_message", messageLabel: "Mensaje para usuarios" },
+      { key: "registration_enabled", label: "Registro habilitado", type: "boolean", hint: "Si se desactiva, nadie puede crear cuentas nuevas.", messageField: "registration_disabled_message", messageLabel: "Mensaje en registro" },
       { key: "landing_chatbot_enabled", label: "Chatbot del landing", type: "boolean", hint: "Si se desactiva, el widget de Chatwoot no aparece en la landing page." },
-      { key: "maintenance_message", label: "Mensaje de mantenimiento", hint: "Texto que se muestra cuando el LLM está desactivado." },
     ],
   },
   {
@@ -468,14 +467,32 @@ function FormSection({ section, data, onSave }) {
                     {field.min != null && <span className="text-[9px] text-muted-foreground">{field.min} — {field.max}</span>}
                   </div>
                   {field.type === "boolean" ? (
-                    <button
-                      type="button"
-                      onClick={() => handleChange(field.key, !val, field)}
-                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${val ? "bg-green-500" : "bg-muted-foreground/30"}`}
-                    >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${val ? "translate-x-6" : "translate-x-1"}`} />
-                      <span className="sr-only">{field.label}</span>
-                    </button>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleChange(field.key, !val, field)}
+                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${val ? "bg-green-500" : "bg-destructive/70"}`}
+                        >
+                          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${val ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                        <span className={`text-xs font-medium ${val ? "text-green-500" : "text-destructive"}`}>
+                          {val ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+                      {!val && field.messageField && (
+                        <div className="pl-1">
+                          <label className="text-[10px] text-muted-foreground">{field.messageLabel || "Mensaje"}</label>
+                          <textarea
+                            value={sectionData[field.messageField] ?? ""}
+                            onChange={(e) => handleChange(field.messageField, e.target.value, {})}
+                            rows={2}
+                            className="w-full mt-1 px-3 py-2 bg-muted border border-destructive/30 rounded-lg text-sm focus:outline-none focus:border-destructive"
+                            placeholder="Mensaje que verán los usuarios..."
+                          />
+                        </div>
+                      )}
+                    </div>
                   ) : field.type === "select" ? (
                     <select
                       value={val || ""}
