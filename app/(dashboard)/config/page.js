@@ -467,7 +467,16 @@ function FormSection({ section, data, onSave }) {
                     <label className="text-xs font-medium">{field.label}</label>
                     {field.min != null && <span className="text-[9px] text-muted-foreground">{field.min} — {field.max}</span>}
                   </div>
-                  {field.type === "select" ? (
+                  {field.type === "boolean" ? (
+                    <button
+                      type="button"
+                      onClick={() => handleChange(field.key, !val, field)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${val ? "bg-green-500" : "bg-muted-foreground/30"}`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${val ? "translate-x-6" : "translate-x-1"}`} />
+                      <span className="sr-only">{field.label}</span>
+                    </button>
+                  ) : field.type === "select" ? (
                     <select
                       value={val || ""}
                       onChange={(e) => handleChange(field.key, e.target.value, field)}
