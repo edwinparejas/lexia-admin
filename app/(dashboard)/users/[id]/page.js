@@ -288,10 +288,10 @@ function ConversationItem({ conversation: c }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{c.user_name || "Conversación"}</p>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-foreground/50">
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-foreground/60">
             <span>{c.message_count} mensajes</span>
             <span>·</span>
-            <span className="flex items-center gap-0.5"><DollarSign className="h-3 w-3" />{totalCost.toFixed(4)}</span>
+            <span className="flex items-center gap-0.5 text-amber-400"><DollarSign className="h-3 w-3" />{totalCost.toFixed(4)} USD</span>
           </div>
         </div>
         <Badge variant="outline" className="text-xs shrink-0">{CHANNEL_LABELS[c.channel] || c.channel}</Badge>
@@ -341,9 +341,12 @@ function ConversationItem({ conversation: c }) {
                           <div className="rounded-2xl rounded-br-md bg-primary text-primary-foreground px-4 py-3">
                             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
                           </div>
-                          <p className="text-xs text-foreground/40 text-right pr-1">
-                            {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
-                          </p>
+                          <div className="flex items-center justify-end gap-1.5 pr-1">
+                            <Clock className="h-3 w-3 text-foreground/50" />
+                            <span className="text-xs text-foreground/60">
+                              {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -373,12 +376,13 @@ function ConversationItem({ conversation: c }) {
                         </div>
                         {/* Footer */}
                         <div className="flex items-center gap-3 px-1">
-                          <span className="text-xs text-foreground/40">
+                          <span className="text-xs text-foreground/60 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
                             {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                           </span>
                           {m.cost_usd > 0 && (
-                            <span className="text-xs text-foreground/40 flex items-center gap-0.5">
-                              <DollarSign className="h-3 w-3" />{Number(m.cost_usd).toFixed(4)} USD
+                            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                              <DollarSign className="h-3 w-3" />{Number(m.cost_usd).toFixed(4)}
                             </span>
                           )}
                         </div>
