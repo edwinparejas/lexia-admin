@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Save, ChevronDown, ChevronUp, Cpu, Search as SearchIcon,
   Bot, Shield, Gauge, Type, AlertTriangle, CreditCard, Lock, FileText, Sparkles,
-  DollarSign, Info, ExternalLink,
+  DollarSign, Info, ExternalLink, Power,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
@@ -22,9 +22,57 @@ const SECTION_ICONS = {
   feature_access: Lock,
   prompt_injection_patterns: Shield,
   document_detection: FileText,
+  service_toggles: Power,
+  cache_config: Sparkles,
+  token_limits: Gauge,
+  chat_config: Bot,
 };
 
 const CONFIG_SECTIONS = [
+  {
+    key: "service_toggles",
+    label: "Control del Servicio",
+    desc: "Llaves de emergencia para activar/desactivar funcionalidades del sistema.",
+    category: "Seguridad",
+    fields: [
+      { key: "llm_enabled", label: "LLM habilitado", type: "boolean", hint: "Si se desactiva, el chat responde con mensaje de mantenimiento. No se gastan tokens." },
+      { key: "registration_enabled", label: "Registro habilitado", type: "boolean", hint: "Si se desactiva, nadie puede crear cuentas nuevas." },
+      { key: "landing_chatbot_enabled", label: "Chatbot del landing", type: "boolean", hint: "Si se desactiva, el widget de Chatwoot no aparece en la landing page." },
+      { key: "maintenance_message", label: "Mensaje de mantenimiento", hint: "Texto que se muestra cuando el LLM está desactivado." },
+    ],
+  },
+  {
+    key: "token_limits",
+    label: "Limites de Tokens",
+    desc: "Controla el tamaño máximo de mensajes e historial para optimizar costos.",
+    category: "Seguridad",
+    fields: [
+      { key: "max_message_length", label: "Max largo de mensaje", type: "number", hint: "Caracteres máximos por mensaje del usuario.", min: 100, max: 50000 },
+      { key: "max_document_content_length", label: "Max largo de documento", type: "number", hint: "Caracteres máximos para contenido de documentos.", min: 1000, max: 500000 },
+      { key: "max_history_messages", label: "Max mensajes en historial", type: "number", hint: "Cuántos mensajes previos se envían al LLM como contexto.", min: 1, max: 20 },
+      { key: "max_history_message_length", label: "Max largo por mensaje historial", type: "number", hint: "Trunca mensajes del historial a esta longitud.", min: 100, max: 5000 },
+    ],
+  },
+  {
+    key: "cache_config",
+    label: "Cache de Respuestas",
+    desc: "Cache semántico para evitar llamadas repetidas al LLM con consultas similares.",
+    category: "IA",
+    fields: [
+      { key: "response_cache_enabled", label: "Cache habilitado", type: "boolean", hint: "Si se activa, respuestas a consultas similares se sirven del cache." },
+      { key: "response_cache_ttl_hours", label: "TTL del cache (horas)", type: "number", hint: "Cuántas horas dura una respuesta cacheada.", min: 1, max: 168 },
+      { key: "min_query_length", label: "Min largo de consulta para cache", type: "number", hint: "No cachear consultas muy cortas.", min: 5, max: 100 },
+    ],
+  },
+  {
+    key: "chat_config",
+    label: "Configuración del Chat",
+    desc: "Opciones de la interfaz de chat.",
+    category: "IA",
+    fields: [
+      { key: "max_suggestions", label: "Max sugerencias", type: "number", hint: "Cantidad máxima de sugerencias de seguimiento.", min: 1, max: 10 },
+    ],
+  },
   {
     key: "llm_config",
     label: "Modelos LLM",
