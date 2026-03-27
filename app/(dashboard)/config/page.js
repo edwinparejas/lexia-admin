@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Save, ChevronDown, ChevronUp, Cpu, Search as SearchIcon,
   Bot, Shield, Gauge, Type, AlertTriangle, CreditCard, Lock, FileText, Sparkles,
-  DollarSign, Info, ExternalLink, Power,
+  DollarSign, Info, ExternalLink, Power, Mail,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
@@ -26,6 +26,7 @@ const SECTION_ICONS = {
   cache_config: Sparkles,
   token_limits: Gauge,
   chat_config: Bot,
+  email_config: Mail,
 };
 
 const CONFIG_SECTIONS = [
@@ -38,6 +39,20 @@ const CONFIG_SECTIONS = [
       { key: "llm_enabled", label: "Consultas con IA", type: "boolean", hint: "Controla si los usuarios pueden enviar consultas al chat. Al desactivarlo, cualquier mensaje que envíe un usuario mostrará el mensaje de mantenimiento configurado abajo. No se realizan llamadas al LLM ni se gastan tokens mientras esté apagado.", messageField: "maintenance_message", messageLabel: "Mensaje de mantenimiento (visible para el usuario)" },
       { key: "registration_enabled", label: "Registro de nuevos usuarios", type: "boolean", hint: "Controla si nuevas personas pueden crear cuentas. Al desactivarlo, la página de registro muestra el mensaje configurado abajo. Los usuarios existentes pueden seguir iniciando sesión normalmente.", messageField: "registration_disabled_message", messageLabel: "Mensaje en página de registro (visible para el usuario)" },
       { key: "landing_chatbot_enabled", label: "Chatbot del landing page", type: "boolean", hint: "Muestra u oculta el widget de Chatwoot (chat de soporte) en la página principal pública. No afecta el chat interno de la aplicación." },
+    ],
+  },
+  {
+    key: "email_config",
+    label: "Notificaciones por Email",
+    desc: "Controla qué emails envía el sistema automáticamente a los usuarios. Requiere que la variable de entorno RESEND_API_KEY esté configurada en el servidor. Si no está configurada, los emails se registran en logs pero no se envían. Usa el servicio Resend.io (100 emails/día gratis).",
+    category: "Seguridad",
+    fields: [
+      { key: "enabled", label: "Sistema de emails activo", type: "boolean", hint: "Interruptor maestro. Si está inactivo, ningún email se envía aunque los demás estén activos. Útil para desactivar todos los emails de golpe sin cambiar cada uno." },
+      { key: "send_welcome", label: "Email de bienvenida", type: "boolean", hint: "Envía un email al usuario cuando inicia sesión por primera vez. Incluye información de su plan trial y las funcionalidades de LexIA." },
+      { key: "send_plan_change", label: "Cambio de plan", type: "boolean", hint: "Envía un email cuando se activa o cambia el plan de un usuario (upgrade, activación por código, extensión). Confirma el nuevo plan y sus límites." },
+      { key: "send_alerts_warning", label: "Alertas de advertencia", type: "boolean", hint: "Envía email cuando un usuario supera los umbrales de advertencia (consultas/día o costo/día). Puede generar muchos emails si los umbrales son bajos." },
+      { key: "send_alerts_critical", label: "Alertas críticas", type: "boolean", hint: "Envía email cuando un usuario supera los umbrales críticos. Recomendado mantener activo para detectar abuso o uso excesivo." },
+      { key: "send_ban", label: "Suspensión de cuenta", type: "boolean", hint: "Envía email cuando un administrador suspende la cuenta de un usuario. Informa al usuario el motivo de la suspensión." },
     ],
   },
   {
