@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft, User, Mail, CreditCard, Calendar, MessageSquare,
   FileText, TrendingUp, Shield, Clock, Zap, BarChart3, ScrollText,
-  ChevronDown, Bot, DollarSign,
+  ChevronDown, Bot, DollarSign, Scale, Search, Sparkles, HelpCircle,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -244,6 +244,22 @@ const QUERY_TYPE_LABELS = {
   CASO_NUEVO: "Caso nuevo",
 };
 
+const QUERY_TYPE_ICONS = {
+  BUSQUEDA_LEGAL: Search,
+  CONSULTA_GENERAL: MessageSquare,
+  ANALISIS_PROFUNDO: Sparkles,
+  CASO_NUEVO: FileText,
+  CONSULTA_PRODUCTO: HelpCircle,
+};
+
+const QUERY_TYPE_COLORS = {
+  BUSQUEDA_LEGAL: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  CONSULTA_GENERAL: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  ANALISIS_PROFUNDO: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  CASO_NUEVO: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  CONSULTA_PRODUCTO: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+};
+
 function ConversationItem({ conversation: c }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState(null);
@@ -259,71 +275,118 @@ function ConversationItem({ conversation: c }) {
     } catch {} finally { setLoading(false); }
   }
 
+  const totalCost = messages ? messages.reduce((s, m) => s + (Number(m.cost_usd) || 0), 0) : Number(c.cost_usd) || 0;
+
   return (
-    <div>
+    <div className={`transition-colors ${open ? "bg-muted/10" : ""}`}>
       <button
         onClick={loadMessages}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-5 py-4 hover:bg-muted/30 transition-colors text-left"
       >
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <MessageSquare className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{c.user_name || "Conversación"}</p>
-          <p className="text-[10px] text-muted-foreground">
-            {c.message_count} mensajes · ${c.cost_usd} USD
-          </p>
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-foreground/50">
+            <span>{c.message_count} mensajes</span>
+            <span>·</span>
+            <span className="flex items-center gap-0.5"><DollarSign className="h-3 w-3" />{totalCost.toFixed(4)}</span>
+          </div>
         </div>
-        <Badge variant="outline" className="text-[10px] shrink-0">{CHANNEL_LABELS[c.channel] || c.channel}</Badge>
-        <span className="text-[10px] text-muted-foreground shrink-0">
+        <Badge variant="outline" className="text-xs shrink-0">{CHANNEL_LABELS[c.channel] || c.channel}</Badge>
+        <span className="text-xs text-foreground/50 shrink-0">
           {new Date(c.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
         </span>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 text-foreground/40 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="border-t bg-muted/20 px-4 py-3 space-y-3">
+        <div className="border-t">
           {loading ? (
-            <p className="text-xs text-muted-foreground text-center py-4">Cargando mensajes...</p>
+            <div className="flex items-center justify-center py-12 gap-2">
+              <Scale className="h-5 w-5 text-primary animate-pulse" />
+              <p className="text-sm text-foreground/50">Cargando conversación...</p>
+            </div>
           ) : !messages || messages.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">Sin mensajes</p>
+            <div className="flex flex-col items-center justify-center py-12">
+              <MessageSquare className="h-8 w-8 text-foreground/20 mb-2" />
+              <p className="text-sm text-foreground/50">Sin mensajes en esta conversación</p>
+            </div>
           ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`flex gap-2 ${m.role === "user" ? "justify-end" : ""}`}
-                >
-                  {m.role !== "user" && (
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <Bot className="h-3 w-3 text-primary" />
-                    </div>
-                  )}
-                  <div className={`rounded-lg px-3 py-2 text-xs leading-relaxed max-w-[85%] ${
-                    m.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border"
-                  }`}>
-                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                    <div className="flex items-center gap-2 mt-1.5 opacity-70">
-                      {m.role === "assistant" && m.tools_used?.[0] && (
-                        <Badge variant="outline" className="text-[8px] py-0 h-4">{QUERY_TYPE_LABELS[m.tools_used[0]] || m.tools_used[0]}</Badge>
-                      )}
-                      {m.role === "assistant" && m.cost_usd > 0 && (
-                        <span className="text-[9px] flex items-center gap-0.5"><DollarSign className="h-2.5 w-2.5" />{Number(m.cost_usd).toFixed(4)}</span>
-                      )}
-                      <span className="text-[9px] ml-auto">
-                        {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
+            <div className="max-h-[600px] overflow-y-auto">
+              {/* Welcome header */}
+              <div className="px-6 py-4 border-b bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Scale className="h-4 w-4 text-primary" />
                   </div>
-                  {m.role === "user" && (
-                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm font-medium">LexIA</p>
+                    <p className="text-xs text-foreground/50">Conversación iniciada el {new Date(c.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Messages */}
+              <div className="px-6 py-4 space-y-4">
+                {messages.map((m) => {
+                  const queryType = m.tools_used?.[0];
+                  const QueryIcon = QUERY_TYPE_ICONS[queryType] || MessageSquare;
+
+                  if (m.role === "user") {
+                    return (
+                      <div key={m.id} className="flex justify-end">
+                        <div className="max-w-[75%] space-y-1">
+                          <div className="rounded-2xl rounded-br-md bg-primary text-primary-foreground px-4 py-3">
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
+                          </div>
+                          <p className="text-xs text-foreground/40 text-right pr-1">
+                            {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Assistant message
+                  const isLong = m.content?.length > 600;
+                  return (
+                    <div key={m.id} className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                        <Scale className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className={`flex-1 min-w-0 space-y-1.5 ${isLong ? "max-w-full" : "max-w-[85%]"}`}>
+                        {/* Header with type badge */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-foreground/70">LexIA</span>
+                          {queryType && (
+                            <Badge variant="outline" className={`text-xs py-0 px-1.5 h-5 gap-1 ${QUERY_TYPE_COLORS[queryType] || ""}`}>
+                              <QueryIcon className="h-3 w-3" />
+                              {QUERY_TYPE_LABELS[queryType] || queryType}
+                            </Badge>
+                          )}
+                        </div>
+                        {/* Content */}
+                        <div className={`rounded-2xl rounded-tl-md border bg-card px-4 py-3 ${isLong ? "max-h-[400px] overflow-y-auto" : ""}`}>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
+                        </div>
+                        {/* Footer */}
+                        <div className="flex items-center gap-3 px-1">
+                          <span className="text-xs text-foreground/40">
+                            {new Date(m.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {m.cost_usd > 0 && (
+                            <span className="text-xs text-foreground/40 flex items-center gap-0.5">
+                              <DollarSign className="h-3 w-3" />{Number(m.cost_usd).toFixed(4)} USD
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -335,11 +398,15 @@ function ConversationItem({ conversation: c }) {
 export default function UserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [detail, setDetail] = useState(null);
   const [usage, setUsage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
-  const [tab, setTab] = useState("overview");
+  const tab = searchParams.get("tab") || "overview";
+  const setTab = useCallback((t) => {
+    router.replace(`/users/${id}?tab=${t}`, { scroll: false });
+  }, [id, router]);
 
   useEffect(() => {
     async function load() {
