@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   BarChart3, Users, MessageSquare, FileText, DollarSign,
   RefreshCw, Zap, Calendar, TrendingUp,
@@ -59,10 +60,14 @@ function getPresetDates(preset) {
 }
 
 export default function MetricsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [stats, setStats] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [preset, setPreset] = useState("week");
+  const preset = searchParams.get("preset") || "week";
+  const setPreset = (value) => router.replace(`${pathname}?preset=${value}`, { scroll: false });
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 

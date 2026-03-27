@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Upload, Database, RefreshCw, Plus, FileText, Scale, HardDrive, Layers, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { apiFetch, getToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,11 +27,15 @@ const AREA_COLORS = {
 };
 
 export default function IndexingPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [indexed, setIndexed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState(null); // { type: "success"|"error"|"info", message }
-  const [area, setArea] = useState("GENERAL");
+  const area = searchParams.get("area") || "GENERAL";
+  const setArea = (value) => router.replace(`${pathname}?area=${value}`, { scroll: false });
   const [dragActive, setDragActive] = useState(false);
   const fileRef = useRef(null);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Search, ScrollText, Filter, RefreshCw, Shield, UserX, UserCheck, Key, Settings, CreditCard, AlertTriangle, FileText } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,9 +32,18 @@ const QUICK_FILTERS = [
 ];
 
 export default function AuditPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("");
+  const filter = searchParams.get("filter") || "";
+  const setFilter = (value) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set("filter", value);
+    else params.delete("filter");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [searchText, setSearchText] = useState("");
 
   async function loadLogs(actionFilter = filter) {
@@ -47,11 +57,10 @@ export default function AuditPage() {
     } catch {} finally { setLoading(false); }
   }
 
-  useEffect(() => { loadLogs(); }, []);
+  useEffect(() => { loadLogs(); }, [filter]);
 
   function handleFilter(value) {
     setFilter(value);
-    loadLogs(value);
   }
 
   const filteredLogs = searchText

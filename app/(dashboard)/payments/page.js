@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Key, CreditCard, Zap, Shield, CheckCircle2, Save,
   AlertTriangle, Info, ExternalLink,
@@ -11,11 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default function PaymentsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [mode, setMode] = useState("code");
+  const mode = searchParams.get("mode") || "code";
+  const setMode = (value) => router.replace(`${pathname}?mode=${value}`, { scroll: false });
   const [cards, setCards] = useState("4242424242424242");
 
   async function loadConfig() {
@@ -24,7 +29,7 @@ export default function PaymentsPage() {
       const d = await apiFetch("/api/admin/payment-config");
       if (d) {
         setConfig(d);
-        setMode(d.mode || "code");
+        if (!searchParams.get("mode")) setMode(d.mode || "code");
         setCards((d.accepted_cards || ["4242424242424242"]).join("\n"));
       }
     } catch {} finally { setLoading(false); }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { FileText, Search, RefreshCw, Filter, Clock, User, BookOpen } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,10 +19,19 @@ const TYPE_CONFIG = {
 };
 
 export default function DocumentsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("");
+  const filterType = searchParams.get("type") || "";
+  const setFilterType = (value) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set("type", value);
+    else params.delete("type");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   async function loadDocs() {
     setLoading(true);
