@@ -18,8 +18,14 @@ const ACTION_CONFIG = {
   "admin.config.update": { label: "Config actualizada", icon: Settings, color: "text-purple-400", bg: "bg-purple-500/10" },
   "user.plan.upgrade": { label: "Plan mejorado", icon: CreditCard, color: "text-emerald-400", bg: "bg-emerald-500/10" },
   "user.plan.downgrade": { label: "Plan rebajado", icon: CreditCard, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-  "system.alert.critical": { label: "Alerta crítica", icon: AlertTriangle, color: "text-red-400", bg: "bg-red-500/10" },
+  "system.alert.warning": { label: "Alerta de uso", icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/10", highlight: true },
+  "system.alert.critical": { label: "Alerta crítica", icon: AlertTriangle, color: "text-red-400", bg: "bg-red-500/10", highlight: true },
   "admin.document.index": { label: "Documento indexado", icon: FileText, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+  "admin.user.update_plan": { label: "Plan actualizado", icon: CreditCard, color: "text-blue-400", bg: "bg-blue-500/10" },
+  "admin.user.update_role": { label: "Rol actualizado", icon: Shield, color: "text-purple-400", bg: "bg-purple-500/10" },
+  "admin.payment.update_mode": { label: "Modo de pago", icon: CreditCard, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  "user.login": { label: "Inicio de sesión", icon: UserCheck, color: "text-green-400", bg: "bg-green-500/10" },
+  "user.register": { label: "Registro nuevo", icon: UserCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
 };
 
 const QUICK_FILTERS = [
@@ -127,34 +133,54 @@ export default function AuditPage() {
         ) : (
           <div className="divide-y">
             {filteredLogs.map((log) => {
-              const cfg = ACTION_CONFIG[log.action] || { label: log.action, icon: Shield, color: "text-muted-foreground", bg: "bg-muted" };
+              const cfg = ACTION_CONFIG[log.action] || { label: log.action, icon: Shield, color: "text-foreground/60", bg: "bg-muted" };
               const Icon = cfg.icon;
+              const isAlert = cfg.highlight;
+              const isCritical = log.action === "system.alert.critical";
+              const alertDetails = isAlert && log.details ? log.details : null;
               return (
-                <div key={log.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                <div key={log.id} className={`flex items-start gap-3 px-4 py-3 transition-colors ${isAlert ? (isCritical ? "bg-red-500/5 border-l-2 border-l-red-500" : "bg-amber-500/5 border-l-2 border-l-amber-500") : "hover:bg-muted/30"}`}>
                   <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0 mt-0.5`}>
                     <Icon className={`h-4 w-4 ${cfg.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-medium">{cfg.label}</span>
-                      <Badge variant="outline" className="text-[9px]">{log.action}</Badge>
+                      <span className={`text-sm font-medium ${isAlert ? cfg.color : ""}`}>{cfg.label}</span>
+                      <Badge variant="outline" className="text-xs">{log.action}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-foreground/60">
                       <span className="font-medium text-foreground/80">{log.actor_email || "sistema"}</span>
                       {log.target_type && (
                         <span> → {log.target_type} <span className="font-mono">{(log.target_id || "").slice(0, 8)}</span></span>
                       )}
                     </p>
-                    {log.details && Object.keys(log.details).length > 0 && (
+                    {/* Alert details shown inline */}
+                    {alertDetails && (
+                      <div className={`mt-2 rounded-lg p-3 text-xs space-y-1 ${isCritical ? "bg-red-500/10 border border-red-500/20" : "bg-amber-500/10 border border-amber-500/20"}`}>
+                        {alertDetails.daily_queries != null && (
+                          <p><span className="font-medium">Consultas hoy:</span> {alertDetails.daily_queries} {alertDetails.threshold_queries ? `(umbral: ${alertDetails.threshold_queries})` : ""}</p>
+                        )}
+                        {alertDetails.daily_cost != null && (
+                          <p><span className="font-medium">Costo hoy:</span> ${Number(alertDetails.daily_cost).toFixed(4)} {alertDetails.threshold_cost ? `(umbral: $${alertDetails.threshold_cost})` : ""}</p>
+                        )}
+                        {alertDetails.total_cost != null && (
+                          <p><span className="font-medium">Costo total acumulado:</span> ${Number(alertDetails.total_cost).toFixed(4)}</p>
+                        )}
+                        {alertDetails.message && <p className="text-foreground/60">{alertDetails.message}</p>}
+                        {alertDetails.email_sent && <p className="text-green-400 font-medium">Email de alerta enviado</p>}
+                      </div>
+                    )}
+                    {/* Non-alert details collapsible */}
+                    {!isAlert && log.details && Object.keys(log.details).length > 0 && (
                       <details className="mt-1">
-                        <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">Ver detalles</summary>
-                        <pre className="text-[10px] text-muted-foreground font-mono mt-1 p-2 bg-muted rounded overflow-x-auto">
+                        <summary className="text-xs text-foreground/50 cursor-pointer hover:text-foreground">Ver detalles</summary>
+                        <pre className="text-xs text-foreground/60 font-mono mt-1 p-2 bg-muted rounded overflow-x-auto">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>
                       </details>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0 mt-1">
+                  <span className="text-xs text-foreground/50 shrink-0 mt-1">
                     {new Date(log.created_at).toLocaleString("es-PE", {
                       day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                     })}
