@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   BarChart3, Users, MessageSquare, FileText, DollarSign,
-  RefreshCw, Zap, Calendar, TrendingUp,
+  RefreshCw, Zap, Calendar, TrendingUp, Download,
 } from "lucide-react";
-import { apiFetch } from "@/lib/auth";
+import { apiFetch, getToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,26 @@ function getPresetDates(preset) {
     default:
       return { from: "", to: "" };
   }
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+
+async function downloadCSV(type) {
+  const token = await getToken();
+  if (!token) return;
+  const res = await fetch(`${API_BASE}/api/admin/export/${type}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = res.headers.get("content-disposition")?.match(/filename="(.+)"/)?.[1] || `${type}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export default function MetricsPage() {
@@ -189,6 +209,27 @@ export default function MetricsPage() {
           <Button variant="ghost" size="sm" onClick={loadData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
+          <span className="w-px h-6 bg-border" />
+          {[
+            { type: "users", label: "Usuarios", icon: Users },
+            { type: "conversations", label: "Conversaciones", icon: MessageSquare },
+            { type: "analytics", label: "Analítica", icon: BarChart3 },
+          ].map((exp) => {
+            const Icon = exp.icon;
+            return (
+              <Button
+                key={exp.type}
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1"
+                onClick={() => downloadCSV(exp.type)}
+                title={`Exportar ${exp.label} CSV`}
+              >
+                <Download className="h-3 w-3" />
+                {exp.label}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
