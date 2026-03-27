@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   BarChart3, Users, Key, Settings, CreditCard, ScrollText, FileText,
-  Database, Shield, ChevronLeft, Sun, Moon, LogOut, Bell,
+  Database, Shield, ChevronLeft, Sun, Moon, LogOut, Bell, Activity,
 } from "lucide-react";
 
 const NAV = [
@@ -20,6 +20,7 @@ const NAV = [
     { href: "/codes", icon: Key, label: "Codigos" },
     { href: "/config", icon: Settings, label: "Configuracion" },
     { href: "/payments", icon: CreditCard, label: "Pagos" },
+    { href: "/notifications", icon: Bell, label: "Notificaciones" },
   ]},
   { label: "CONTENIDO", items: [
     { href: "/documents", icon: FileText, label: "Documentos" },
@@ -27,6 +28,7 @@ const NAV = [
   ]},
   { label: "SISTEMA", items: [
     { href: "/audit", icon: ScrollText, label: "Audit Log" },
+    { href: "/health", icon: Activity, label: "Salud del Sistema" },
   ]},
 ];
 
