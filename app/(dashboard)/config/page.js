@@ -484,7 +484,7 @@ function FormSection({ section, data, onSave }) {
                         <div className="pl-1">
                           <label className="text-[10px] text-muted-foreground">{field.messageLabel || "Mensaje"}</label>
                           <textarea
-                            value={sectionData[field.messageField] ?? ""}
+                            value={values[field.messageField] ?? ""}
                             onChange={(e) => handleChange(field.messageField, e.target.value, {})}
                             rows={2}
                             className={`w-full mt-1 px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none ${!val ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"}`}
