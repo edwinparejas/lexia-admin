@@ -52,8 +52,6 @@ export default function HealthPage() {
 
   useEffect(() => {
     fetchHealth();
-    const interval = setInterval(fetchHealth, 60000);
-    return () => clearInterval(interval);
   }, [fetchHealth]);
 
   const overallStatus = data?.status || "unhealthy";
@@ -221,7 +219,7 @@ export default function HealthPage() {
 
       {/* Auto-refresh notice */}
       <p className="text-xs text-foreground/40 text-center">
-        Se actualiza automáticamente cada 60 segundos · Cada verificación prueba la conectividad real con el servicio
+        Cada verificación prueba la conectividad real con el servicio
       </p>
     </div>
   );
