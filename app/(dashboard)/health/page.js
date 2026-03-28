@@ -155,6 +155,8 @@ export default function HealthPage() {
             const status = service?.status || "error";
             const isOk = status === "ok";
             const isWarn = status === "warning";
+            const enabled = service?.enabled;
+            const alwaysOn = ["supabase", "pinecone", "openai"].includes(name);
 
             return (
               <div
@@ -169,7 +171,14 @@ export default function HealthPage() {
                       {logo || <Server className="h-5 w-5" />}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold">{meta.label}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold">{meta.label}</p>
+                        {!alwaysOn && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${enabled ? "bg-green-500/10 text-green-500" : "bg-foreground/5 text-foreground/40"}`}>
+                            {enabled ? "Activo" : "Inactivo"}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-foreground/50">{meta.desc}</p>
                     </div>
                   </div>
