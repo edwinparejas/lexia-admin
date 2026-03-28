@@ -465,7 +465,25 @@ function ActionsTab({ user, userId, onRefresh, toast }) {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [manualPassword, setManualPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [passPolicy, setPassPolicy] = useState({ min_length: 6 });
+  const [passError, setPassError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE || ""}/api/service-status`)
+      .then((r) => r.json())
+      .then((d) => { if (d.password_policy) setPassPolicy(d.password_policy); })
+      .catch(() => {});
+  }, []);
+
+  function validateManualPassword(pass) {
+    if (!pass) return "Ingresa una contraseña";
+    if (pass.length < (passPolicy.min_length || 6)) return `Mínimo ${passPolicy.min_length || 6} caracteres`;
+    if (passPolicy.require_uppercase && !/[A-Z]/.test(pass)) return "Debe incluir al menos una mayúscula";
+    if (passPolicy.require_number && !/[0-9]/.test(pass)) return "Debe incluir al menos un número";
+    if (passPolicy.require_special && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass)) return "Debe incluir un carácter especial";
+    return "";
+  }
 
   async function handleCreditsAction(action, body) {
     setActionLoading(action);
@@ -623,23 +641,50 @@ function ActionsTab({ user, userId, onRefresh, toast }) {
             </div>
             <div className="border-t pt-3">
               <p className="text-xs text-muted-foreground mb-2">O establecer contraseña manualmente:</p>
-              <div className="flex gap-3 items-end">
+              <div className="space-y-2">
                 <div>
-                  <label className="text-[10px] text-muted-foreground block mb-1">Nueva contraseña</label>
+                  <label className={`text-xs block mb-1 ${passError ? "text-destructive font-medium" : "text-muted-foreground"}`}>Nueva contraseña</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
                       value={manualPassword}
-                      onChange={(e) => setManualPassword(e.target.value)}
-                      placeholder="Minimo 6 caracteres"
-                      className="w-60 px-3 py-2 bg-muted border rounded-lg text-sm pr-8"
+                      onChange={(e) => { setManualPassword(e.target.value); setPassError(""); }}
+                      placeholder={`Mínimo ${passPolicy.min_length || 6} caracteres`}
+                      className={`w-full max-w-sm px-3 py-2 bg-muted border rounded-lg text-sm pr-8 focus:outline-none transition-colors ${passError ? "border-destructive ring-2 ring-destructive/20" : "focus:border-primary"}`}
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs">
                       {showPassword ? "🙈" : "👁"}
                     </button>
                   </div>
+                  {passError && <p className="text-xs text-destructive mt-1">{passError}</p>}
+                  {(passPolicy.require_uppercase || passPolicy.require_number || passPolicy.require_special) && manualPassword && (
+                    <div className="text-xs mt-2 space-y-0.5">
+                      <p className={manualPassword.length >= (passPolicy.min_length || 6) ? "text-green-500" : "text-muted-foreground"}>
+                        {manualPassword.length >= (passPolicy.min_length || 6) ? "✓" : "○"} Mínimo {passPolicy.min_length || 6} caracteres
+                      </p>
+                      {passPolicy.require_uppercase && (
+                        <p className={/[A-Z]/.test(manualPassword) ? "text-green-500" : "text-muted-foreground"}>
+                          {/[A-Z]/.test(manualPassword) ? "✓" : "○"} Al menos una mayúscula
+                        </p>
+                      )}
+                      {passPolicy.require_number && (
+                        <p className={/[0-9]/.test(manualPassword) ? "text-green-500" : "text-muted-foreground"}>
+                          {/[0-9]/.test(manualPassword) ? "✓" : "○"} Al menos un número
+                        </p>
+                      )}
+                      {passPolicy.require_special && (
+                        <p className={/[!@#$%^&*]/.test(manualPassword) ? "text-green-500" : "text-muted-foreground"}>
+                          {/[!@#$%^&*]/.test(manualPassword) ? "✓" : "○"} Al menos un carácter especial
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <Button size="sm" onClick={() => handleResetPassword("set_password", manualPassword)} disabled={actionLoading === "reset_password" || manualPassword.length < 6}>
+                <Button size="sm" onClick={() => {
+                  const err = validateManualPassword(manualPassword);
+                  if (err) { setPassError(err); return; }
+                  handleResetPassword("set_password", manualPassword);
+                }} disabled={actionLoading === "reset_password"}>
                   {actionLoading === "reset_password" ? "Procesando..." : "Establecer contraseña"}
                 </Button>
               </div>
