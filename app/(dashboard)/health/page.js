@@ -35,13 +35,15 @@ const SERVICE_LOGOS = {
     </svg>
   ),
   sentry: (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-      <path d="M13.91 2.505c-.873-1.448-2.972-1.448-3.845 0L6.574 8.17a7.085 7.085 0 0 1 5.403 6.861h-2.21a4.875 4.875 0 0 0-4.476-3.04l-2.755 4.572c-.873 1.449.218 3.261 1.922 3.261h1.68a.728.728 0 0 0 0-1.455H4.46c-.57 0-.932-.606-.641-1.089l1.958-3.249A3.42 3.42 0 0 1 8.86 16.49h3.58a.727.727 0 0 0 .727-.727 8.54 8.54 0 0 0-5.062-7.795L11.988 2.15c.292-.484.994-.484 1.285 0l6.893 11.438c.29.483-.073 1.089-.643 1.089h-1.192a.728.728 0 0 0 0 1.455h1.192c1.704 0 2.795-1.812 1.923-3.261z"/>
+    <svg viewBox="0 0 72 66" className="h-5 w-5" fill="currentColor">
+      <path d="M29 2.26a3.68 3.68 0 0 0-6.38 0L17.26 12a24.4 24.4 0 0 1 11.49 20.73h-6.12A18.4 18.4 0 0 0 8.3 19.78L2.3 30.25A3.68 3.68 0 0 0 5.49 35.8h3.52a1.89 1.89 0 1 0 0-3.78H5.49a.63.63 0 0 1-.54-1L9.86 22a14.5 14.5 0 0 1 12.36 10.68h-6.45a1.88 1.88 0 0 0-1.88 1.88A21.7 21.7 0 0 0 26.3 50.1l12-20.46a.63.63 0 0 1 1.08 0L51.78 50.1a.63.63 0 0 1-.54 1h-2.5a1.89 1.89 0 0 0 0 3.78h2.5a4.41 4.41 0 0 0 3.82-6.6Z"/>
     </svg>
   ),
   langfuse: (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M3 12h4l3-9 4 18 3-9h4" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 14l3-4 3 2 4-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="17" cy="7" r="1.5" fill="currentColor"/>
     </svg>
   ),
   stripe: (
@@ -56,7 +58,7 @@ const SERVICE_META = {
   pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58" },
   openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f" },
   resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6" },
-  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#362d59" },
+  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226" },
   langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b" },
   stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff" },
 };
