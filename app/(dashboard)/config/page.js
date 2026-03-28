@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Save, ChevronDown, ChevronUp, Cpu, Search as SearchIcon,
   Bot, Shield, Gauge, Type, AlertTriangle, CreditCard, Lock, FileText, Sparkles,
-  DollarSign, Info, ExternalLink, Power, Mail,
+  DollarSign, Info, ExternalLink, Power, Mail, Link2,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
@@ -27,6 +27,7 @@ const SECTION_ICONS = {
   token_limits: Gauge,
   chat_config: Bot,
   email_config: Mail,
+  integrations: Link2,
 };
 
 const CONFIG_SECTIONS = [
@@ -202,6 +203,20 @@ const CONFIG_SECTIONS = [
     desc: "Cuando la IA genera una respuesta, el sistema analiza el texto para determinar si contiene un documento legal (contrato, demanda, escrito, etc.). Si al menos [coincidencias mínimas] de los patrones regex coinciden con el texto, se activan automáticamente las opciones de Guardar en biblioteca y Descargar (Word/PDF) para esa respuesta.",
     category: "IA",
     type: "doc_detection",
+  },
+  {
+    key: "integrations",
+    label: "Integraciones Externas",
+    desc: "Activa o desactiva integraciones con servicios externos. Cada integración requiere su variable de entorno configurada en el servidor (EasyPanel). Si la variable no está configurada, la integración no funcionará aunque esté activa.",
+    category: "Seguridad",
+    fields: [
+      { key: "google_auth_enabled", label: "Google OAuth (Inicio de sesión con Google)", type: "boolean", hint: "Permite a los usuarios iniciar sesión o registrarse con su cuenta de Google. Se configura en el dashboard de Supabase (Authentication → Providers → Google). No requiere variable de entorno adicional en el backend." },
+      { key: "sentry_enabled", label: "Sentry (Monitoreo de errores)", type: "boolean", hint: "Captura errores del backend automáticamente y los envía a Sentry para análisis. Requiere configurar la variable SENTRY_DSN en EasyPanel." },
+      { key: "resend_enabled", label: "Resend (Envío de emails)", type: "boolean", hint: "Habilita el envío de emails transaccionales (bienvenida, alertas, suspensión). Requiere configurar la variable RESEND_API_KEY en EasyPanel. Sin esta variable, los emails se registran en logs pero no se envían." },
+      { key: "langfuse_enabled", label: "Langfuse (Observabilidad LLM)", type: "boolean", hint: "Registra todas las llamadas al LLM en Langfuse para análisis de costos, latencia y calidad de respuestas. Requiere configurar LANGFUSE_PUBLIC_KEY y LANGFUSE_SECRET_KEY en EasyPanel." },
+      { key: "chatwoot_enabled", label: "Chatwoot (Chat de soporte)", type: "boolean", hint: "Muestra el widget de chat de soporte en la landing page y el dashboard. Requiere configurar CHATWOOT_URL y CHATWOOT_API_KEY en EasyPanel, y los tokens del widget en el frontend." },
+      { key: "stripe_enabled", label: "Stripe (Pagos con tarjeta)", type: "boolean", hint: "Habilita el procesamiento de pagos con tarjeta de crédito/débito via Stripe. Requiere configurar STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET en EasyPanel." },
+    ],
   },
 ];
 
