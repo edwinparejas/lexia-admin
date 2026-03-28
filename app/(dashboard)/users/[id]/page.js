@@ -8,6 +8,7 @@ import {
   FileText, TrendingUp, Shield, Clock, Zap, BarChart3, ScrollText,
   ChevronDown, Bot, DollarSign, Scale, Search, Sparkles, HelpCircle,
   Copy, Check, Settings, Trash2, Plus, RotateCcw, AlertTriangle,
+  KeyRound, Send,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -462,6 +463,8 @@ function ActionsTab({ user, userId, onRefresh, toast }) {
   const [actionLoading, setActionLoading] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [manualPassword, setManualPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   async function handleCreditsAction(action, body) {
@@ -489,6 +492,22 @@ function ActionsTab({ user, userId, onRefresh, toast }) {
       toast(`Plan cambiado a ${changePlan}`, "success");
       onRefresh();
     } catch (e) { toast("Error al cambiar plan", "error"); }
+    finally { setActionLoading(""); }
+  }
+
+  async function handleResetPassword(action, password = "") {
+    setActionLoading("reset_password");
+    try {
+      const body = { action };
+      if (action === "set_password") body.password = password;
+      const res = await apiFetch(`/api/admin/users/${userId}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (res?.error) { toast(res.error, "error"); return; }
+      toast(res.message || "Operacion completada", "success");
+      setManualPassword("");
+    } catch (e) { toast("Error al resetear contraseña", "error"); }
     finally { setActionLoading(""); }
   }
 
@@ -586,6 +605,46 @@ function ActionsTab({ user, userId, onRefresh, toast }) {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">Plan actual: <span className="font-mono font-medium capitalize">{user.plan || "trial"}</span></p>
+        </CardContent>
+      </Card>
+
+      {/* Reset password */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><KeyRound className="h-4 w-4 text-orange-400" /> Resetear contraseña</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">Envia un email de recuperacion al usuario o establece una contraseña manualmente.</p>
+          <div className="space-y-3">
+            <div>
+              <Button size="sm" variant="outline" onClick={() => { if (confirm(`¿Enviar email de recuperacion a ${user.identifier}?`)) handleResetPassword("send_email"); }} disabled={actionLoading === "reset_password"}>
+                <Send className="h-3.5 w-3.5 mr-1" /> {actionLoading === "reset_password" ? "Enviando..." : "Enviar email de recuperacion"}
+              </Button>
+            </div>
+            <div className="border-t pt-3">
+              <p className="text-xs text-muted-foreground mb-2">O establecer contraseña manualmente:</p>
+              <div className="flex gap-3 items-end">
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-1">Nueva contraseña</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={manualPassword}
+                      onChange={(e) => setManualPassword(e.target.value)}
+                      placeholder="Minimo 6 caracteres"
+                      className="w-60 px-3 py-2 bg-muted border rounded-lg text-sm pr-8"
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs">
+                      {showPassword ? "🙈" : "👁"}
+                    </button>
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => handleResetPassword("set_password", manualPassword)} disabled={actionLoading === "reset_password" || manualPassword.length < 6}>
+                  {actionLoading === "reset_password" ? "Procesando..." : "Establecer contraseña"}
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

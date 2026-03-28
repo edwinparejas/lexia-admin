@@ -29,6 +29,7 @@ const SECTION_ICONS = {
   email_config: Mail,
   integrations: Link2,
   trial_config: Gauge,
+  password_policy: Lock,
 };
 
 const CONFIG_SECTIONS = [
@@ -192,6 +193,18 @@ const CONFIG_SECTIONS = [
     fields: [
       { key: "duration_days", label: "Duracion del trial (dias)", type: "number", min: 1, max: 90, hint: "Cuantos dias dura el periodo de prueba gratuito desde que el usuario se registra. Despues de este periodo, el usuario debe activar un plan pago para seguir usando el servicio." },
       { key: "queries_limit", label: "Consultas en trial", type: "number", min: 1, max: 100, hint: "Cantidad maxima de consultas que un usuario en trial puede realizar durante todo su periodo de prueba. Al agotarse, debe activar un plan pago." },
+    ],
+  },
+  {
+    key: "password_policy",
+    label: "Politica de Contraseñas",
+    desc: "Configura los requisitos minimos de seguridad para las contraseñas de los usuarios. Los cambios aplican solo a nuevas contraseñas, no afectan contraseñas existentes.",
+    category: "Seguridad",
+    fields: [
+      { key: "min_length", label: "Largo minimo", type: "number", min: 4, max: 32, hint: "Cantidad minima de caracteres. Recomendado: 8 para buena seguridad." },
+      { key: "require_uppercase", label: "Requiere mayuscula", type: "boolean", hint: "Exige al menos una letra mayuscula (A-Z)." },
+      { key: "require_number", label: "Requiere numero", type: "boolean", hint: "Exige al menos un digito (0-9)." },
+      { key: "require_special", label: "Requiere caracter especial", type: "boolean", hint: "Exige al menos un caracter especial (!@#$%^&*)." },
     ],
   },
   {
