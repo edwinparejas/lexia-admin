@@ -124,12 +124,12 @@ export default function HealthPage() {
           const SvcIcon = cfg.icon;
 
           return (
-            <Card key={name} className={`transition-colors ${svcStatus === "error" ? "border-red-500/20" : svcStatus === "warning" ? "border-amber-500/20" : ""}`}>
+            <Card key={name} className={`transition-colors ${svcStatus === "error" ? "border-red-500/30 bg-red-500/5" : svcStatus === "warning" ? "border-amber-500/30 bg-amber-500/5" : "border-green-500/10"}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                      <Icon className="h-4 w-4 text-foreground/70" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${svcStatus === "ok" ? "bg-green-500/10" : svcStatus === "warning" ? "bg-amber-500/10" : "bg-red-500/10"}`}>
+                      <Icon className={`h-4 w-4 ${svcStatus === "ok" ? "text-green-400" : svcStatus === "warning" ? "text-amber-400" : "text-red-400"}`} />
                     </div>
                     <div>
                       <CardTitle className="text-sm font-medium">{meta.label}</CardTitle>
@@ -139,7 +139,7 @@ export default function HealthPage() {
                   <div className={`w-3 h-3 rounded-full ${cfg.dot} ${svcStatus === "ok" ? "animate-pulse" : ""}`} />
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
                   <SvcIcon className={`h-3.5 w-3.5 ${cfg.iconColor}`} />
                   <Badge className={`text-xs ${cfg.badge}`}>{cfg.label}</Badge>
@@ -148,9 +148,20 @@ export default function HealthPage() {
                   )}
                 </div>
                 {service?.details && (
-                  <p className="text-xs text-foreground/60">{service.details}</p>
+                  <p className={`text-xs font-medium ${svcStatus === "ok" ? "text-green-400" : svcStatus === "warning" ? "text-amber-400" : "text-red-400"}`}>
+                    {service.details}
+                  </p>
                 )}
-                <p className="text-xs text-foreground/40 font-mono">{meta.envVar}</p>
+                {svcStatus !== "ok" && (
+                  <div className={`rounded-lg p-2.5 text-xs space-y-1 ${svcStatus === "error" ? "bg-red-500/10 border border-red-500/20" : "bg-amber-500/10 border border-amber-500/20"}`}>
+                    <p className="font-medium">{svcStatus === "error" ? "Acción requerida:" : "Para activar:"}</p>
+                    <p className="text-foreground/70">Configura la variable de entorno en EasyPanel:</p>
+                    <p className="font-mono font-medium">{meta.envVar}</p>
+                  </div>
+                )}
+                {svcStatus === "ok" && (
+                  <p className="text-xs text-foreground/40 font-mono">{meta.envVar}</p>
+                )}
               </CardContent>
             </Card>
           );
