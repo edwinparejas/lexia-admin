@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   BarChart3, Users, Key, Settings, CreditCard, ScrollText, FileText,
   Database, Shield, ChevronLeft, Sun, Moon, LogOut, Bell, Activity,
+  ChevronUp, Lock, ExternalLink,
 } from "lucide-react";
 
 const NAV = [
@@ -33,6 +34,146 @@ const NAV = [
     { href: "/health", icon: Activity, label: "Salud del Sistema" },
   ]},
 ];
+
+function AdminUserMenu({ user, darkMode, toggleTheme, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const [changingPass, setChangingPass] = useState(false);
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [passLoading, setPassLoading] = useState(false);
+  const [passMsg, setPassMsg] = useState(null);
+  const menuRef = require("react").useRef(null);
+
+  require("react").useEffect(() => {
+    function handleClick(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpen(false);
+        setChangingPass(false);
+      }
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    if (newPass.length < 6) { setPassMsg({ type: "error", text: "Minimo 6 caracteres" }); return; }
+    if (newPass !== confirmPass) { setPassMsg({ type: "error", text: "Las contraseñas no coinciden" }); return; }
+    setPassLoading(true);
+    setPassMsg(null);
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+      const { error } = await sb.auth.updateUser({ password: newPass });
+      if (error) throw error;
+      setPassMsg({ type: "success", text: "Contraseña actualizada" });
+      setNewPass("");
+      setConfirmPass("");
+      setTimeout(() => { setChangingPass(false); setPassMsg(null); }, 2000);
+    } catch (err) {
+      setPassMsg({ type: "error", text: err.message || "Error al cambiar" });
+    } finally {
+      setPassLoading(false);
+    }
+  }
+
+  const initials = (user?.name || user?.identifier || "A").slice(0, 2).toUpperCase();
+
+  return (
+    <div className="relative p-2" ref={menuRef}>
+      <button
+        onClick={() => { setOpen(!open); setChangingPass(false); }}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors text-left ${open ? "bg-accent" : "hover:bg-accent/50"}`}
+      >
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium truncate">{user?.name || "Admin"}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{user?.identifier}</p>
+        </div>
+        <ChevronUp className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "" : "rotate-180"}`} />
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-2 right-2 mb-1 bg-popover text-popover-foreground border rounded-lg shadow-xl z-50 overflow-hidden">
+          {changingPass ? (
+            <form onSubmit={handleChangePassword} className="p-4 space-y-3">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Cambiar contraseña
+              </p>
+              <input
+                type="password"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                placeholder="Nueva contraseña (min 6 caracteres)"
+                className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none focus:border-primary"
+                required
+                minLength={6}
+              />
+              <input
+                type="password"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                placeholder="Confirmar contraseña"
+                className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none focus:border-primary"
+                required
+              />
+              {passMsg && (
+                <p className={`text-xs ${passMsg.type === "error" ? "text-destructive" : "text-green-500"}`}>{passMsg.text}</p>
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setChangingPass(false)}>Cancelar</Button>
+                <Button type="submit" size="sm" disabled={passLoading}>
+                  {passLoading ? "Cambiando..." : "Cambiar"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="px-4 py-3 border-b bg-muted/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                    {initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{user?.name || "Admin"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.identifier}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="py-1">
+                <button onClick={() => setChangingPass(true)} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors text-left">
+                  <Lock className="h-4 w-4" />
+                  Cambiar contraseña
+                </button>
+                <button onClick={toggleTheme} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors text-left">
+                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {darkMode ? "Modo claro" : "Modo oscuro"}
+                </button>
+                <a
+                  href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://lexia-pe.vercel.app/dashboard"}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Ir al dashboard usuario
+                </a>
+              </div>
+              <Separator />
+              <div className="py-1">
+                <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors text-left">
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesion
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -58,6 +199,15 @@ export default function DashboardLayout({ children }) {
     } else {
       document.documentElement.classList.remove("dark");
     }
+  }
+
+  async function handleLogout() {
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+      await sb.auth.signOut();
+    } catch {}
+    router.push("/login");
   }
 
   useEffect(() => {
@@ -99,9 +249,6 @@ export default function DashboardLayout({ children }) {
             </div>
             <span className="font-bold text-sm">LexIA Admin</span>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleTheme}>
-            {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-          </Button>
         </div>
 
         <Separator />
@@ -136,16 +283,7 @@ export default function DashboardLayout({ children }) {
 
         <Separator />
 
-        <div className="p-2">
-          <p className="px-3 text-[10px] text-muted-foreground truncate mb-1">{user?.identifier}</p>
-          <Link
-            href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://lexia-three.vercel.app/dashboard"}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Ir al dashboard
-          </Link>
-        </div>
+        <AdminUserMenu user={user} darkMode={darkMode} toggleTheme={toggleTheme} onLogout={handleLogout} />
       </aside>
 
       <main className="flex-1 overflow-y-auto">
