@@ -7,7 +7,7 @@ import {
   ChevronLeft, User, Mail, CreditCard, Calendar, MessageSquare,
   FileText, TrendingUp, Shield, Clock, Zap, BarChart3, ScrollText,
   ChevronDown, Bot, DollarSign, Scale, Search, Sparkles, HelpCircle,
-  Copy, Check,
+  Copy, Check, Settings, Trash2, Plus, RotateCcw, AlertTriangle,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -454,6 +454,180 @@ function ConversationItem({ conversation: c }) {
   );
 }
 
+function ActionsTab({ user, userId, onRefresh, toast }) {
+  const [creditsAmount, setCreditsAmount] = useState(20);
+  const [creditsReason, setCreditsReason] = useState("");
+  const [setLimitAmount, setSetLimitAmount] = useState(user.queries_limit || 100);
+  const [changePlan, setChangePlan] = useState(user.plan || "trial");
+  const [actionLoading, setActionLoading] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const router = useRouter();
+
+  async function handleCreditsAction(action, body) {
+    setActionLoading(action);
+    try {
+      const res = await apiFetch(`/api/admin/users/${userId}/credits`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      if (res?.error) { toast(res.error, "error"); return; }
+      toast("Operacion completada", "success");
+      onRefresh();
+    } catch (e) { toast("Error al procesar", "error"); }
+    finally { setActionLoading(""); }
+  }
+
+  async function handleChangePlan() {
+    setActionLoading("plan");
+    try {
+      const res = await apiFetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        body: JSON.stringify({ plan: changePlan }),
+      });
+      if (res?.error) { toast(res.error, "error"); return; }
+      toast(`Plan cambiado a ${changePlan}`, "success");
+      onRefresh();
+    } catch (e) { toast("Error al cambiar plan", "error"); }
+    finally { setActionLoading(""); }
+  }
+
+  async function handleDeleteUser() {
+    setActionLoading("delete");
+    try {
+      const res = await apiFetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      if (res?.error) { toast(res.error, "error"); return; }
+      toast("Usuario eliminado correctamente", "success");
+      router.push("/users");
+    } catch (e) { toast("Error al eliminar usuario", "error"); }
+    finally { setActionLoading(""); }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Add credits */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><Plus className="h-4 w-4 text-green-400" /> Agregar consultas</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Incrementa el limite de consultas del usuario. Las consultas usadas no se modifican.</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Cantidad</label>
+              <input type="number" value={creditsAmount} onChange={(e) => setCreditsAmount(Number(e.target.value))} min={1} max={10000} className="w-full px-3 py-2 bg-muted border rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Motivo (opcional)</label>
+              <input value={creditsReason} onChange={(e) => setCreditsReason(e.target.value)} placeholder="Ej: Bonus por feedback" className="w-full px-3 py-2 bg-muted border rounded-lg text-sm" />
+            </div>
+            <div className="flex items-end">
+              <Button size="sm" onClick={() => handleCreditsAction("add", { action: "add", amount: creditsAmount, reason: creditsReason })} disabled={actionLoading === "add" || creditsAmount < 1}>
+                {actionLoading === "add" ? "Procesando..." : "Agregar"}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Limite actual: <span className="font-mono font-medium">{user.queries_limit === -1 ? "Ilimitado" : user.queries_limit || 10}</span> | Usadas: <span className="font-mono font-medium">{user.queries_used || 0}</span></p>
+        </CardContent>
+      </Card>
+
+      {/* Set limit */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><Settings className="h-4 w-4 text-blue-400" /> Establecer limite</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Establece un valor exacto para el limite de consultas. Usa -1 para ilimitado.</p>
+          <div className="flex gap-3 items-end">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Nuevo limite</label>
+              <input type="number" value={setLimitAmount} onChange={(e) => setSetLimitAmount(Number(e.target.value))} min={-1} max={100000} className="w-40 px-3 py-2 bg-muted border rounded-lg text-sm" />
+            </div>
+            <Button size="sm" onClick={() => handleCreditsAction("set", { action: "set", amount: setLimitAmount, reason: "Ajuste manual admin" })} disabled={actionLoading === "set"}>
+              {actionLoading === "set" ? "Procesando..." : "Establecer"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reset usage */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><RotateCcw className="h-4 w-4 text-amber-400" /> Resetear uso</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Reinicia el contador de consultas usadas a 0. El limite se mantiene igual.</p>
+          <p className="text-xs text-muted-foreground">Consultas usadas actualmente: <span className="font-mono font-bold">{user.queries_used || 0}</span></p>
+          <Button size="sm" variant="outline" onClick={() => handleCreditsAction("reset", { action: "add", amount: 0, reset_used: true, reason: "Reset manual admin" })} disabled={actionLoading === "reset"}>
+            {actionLoading === "reset" ? "Procesando..." : "Resetear consultas usadas"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Change plan */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="h-4 w-4 text-purple-400" /> Cambiar plan</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Cambia el plan del usuario directamente, sin necesidad de pago. No modifica las fechas de suscripcion.</p>
+          <div className="flex gap-3 items-end">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-1">Nuevo plan</label>
+              <select value={changePlan} onChange={(e) => setChangePlan(e.target.value)} className="w-48 px-3 py-2 bg-muted border rounded-lg text-sm">
+                <option value="trial">Trial</option>
+                <option value="basico">Basico</option>
+                <option value="profesional">Profesional</option>
+                <option value="estudio">Estudio</option>
+              </select>
+            </div>
+            <Button size="sm" onClick={handleChangePlan} disabled={actionLoading === "plan" || changePlan === user.plan}>
+              {actionLoading === "plan" ? "Procesando..." : "Cambiar plan"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Plan actual: <span className="font-mono font-medium capitalize">{user.plan || "trial"}</span></p>
+        </CardContent>
+      </Card>
+
+      {/* Delete user - danger zone */}
+      <Card className="border-destructive/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2 text-destructive"><Trash2 className="h-4 w-4" /> Eliminar cuenta</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <div className="text-xs text-destructive space-y-1">
+                <p className="font-medium">Esta accion es irreversible</p>
+                <p>Se eliminaran permanentemente: todas las conversaciones y mensajes, documentos generados, notificaciones, historial de suscripcion, registros de uso y la cuenta de autenticacion.</p>
+              </div>
+            </div>
+          </div>
+          {!showDeleteConfirm ? (
+            <Button size="sm" variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+              Eliminar usuario
+            </Button>
+          ) : (
+            <div className="space-y-3 rounded-lg border border-destructive/30 p-3">
+              <p className="text-xs text-muted-foreground">Escribe <span className="font-mono font-bold text-destructive">ELIMINAR</span> para confirmar:</p>
+              <input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="ELIMINAR" className="w-48 px-3 py-2 bg-muted border rounded-lg text-sm font-mono" />
+              <div className="flex gap-2">
+                <Button size="sm" variant="destructive" onClick={handleDeleteUser} disabled={deleteConfirmText !== "ELIMINAR" || actionLoading === "delete"}>
+                  {actionLoading === "delete" ? "Eliminando..." : "Confirmar eliminacion"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function UserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -518,6 +692,7 @@ export default function UserDetailPage() {
     { key: "conversations", label: `Conversaciones (${detail.conversations?.length || 0})`, icon: MessageSquare },
     { key: "documents", label: `Documentos (${detail.documents?.length || 0})`, icon: FileText },
     { key: "activity", label: "Actividad", icon: ScrollText },
+    { key: "actions", label: "Acciones", icon: Settings },
   ];
 
   return (
@@ -786,6 +961,9 @@ export default function UserDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Tab: Actions */}
+      {tab === "actions" && <ActionsTab user={user} userId={id} toast={toast} onRefresh={() => { setLoading(true); apiFetch(`/api/admin/users/${id}/detail`).then(setDetail).finally(() => setLoading(false)); }} />}
     </div>
   );
 }

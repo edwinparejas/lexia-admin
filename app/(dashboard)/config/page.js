@@ -28,6 +28,7 @@ const SECTION_ICONS = {
   chat_config: Bot,
   email_config: Mail,
   integrations: Link2,
+  trial_config: Gauge,
 };
 
 const CONFIG_SECTIONS = [
@@ -181,6 +182,16 @@ const CONFIG_SECTIONS = [
       { key: "profesional.price", label: "Profesional: precio (S/)", type: "number", hint: "Precio mensual del plan Profesional. Incluye funcionalidades premium como análisis multi-agente y gestión de documentos." },
       { key: "estudio.limit", label: "Estudio: consultas/mes", type: "number", hint: "Consultas mensuales del plan Estudio. Usar -1 para consultas ilimitadas. Si es ilimitado, monitorear el costo real por usuario con los umbrales de alerta." },
       { key: "estudio.price", label: "Estudio: precio (S/)", type: "number", hint: "Precio mensual del plan premium para estudios jurídicos grandes. Incluye todas las funcionalidades sin restricciones." },
+    ],
+  },
+  {
+    key: "trial_config",
+    label: "Configuracion del Trial",
+    desc: "Configura la duracion y limites del periodo de prueba gratuito para nuevos usuarios.",
+    category: "Negocio",
+    fields: [
+      { key: "duration_days", label: "Duracion del trial (dias)", type: "number", min: 1, max: 90, hint: "Cuantos dias dura el periodo de prueba gratuito desde que el usuario se registra. Despues de este periodo, el usuario debe activar un plan pago para seguir usando el servicio." },
+      { key: "queries_limit", label: "Consultas en trial", type: "number", min: 1, max: 100, hint: "Cantidad maxima de consultas que un usuario en trial puede realizar durante todo su periodo de prueba. Al agotarse, debe activar un plan pago." },
     ],
   },
   {
