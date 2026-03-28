@@ -201,34 +201,65 @@ function SubscriptionTab({ user, userId, onRefresh }) {
 
       {/* History */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Historial de suscripción</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Historial de suscripción y pagos</CardTitle></CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <p className="text-xs text-muted-foreground text-center py-8">Cargando...</p>
+            <p className="text-xs text-foreground/50 text-center py-8">Cargando historial...</p>
           ) : history.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-xs text-muted-foreground">Sin historial de cambios</p>
+              <Clock className="h-6 w-6 text-foreground/20 mx-auto mb-2" />
+              <p className="text-sm text-foreground/50">Sin historial de cambios</p>
+              <p className="text-xs text-foreground/40 mt-1">Las activaciones, extensiones y cambios de plan aparecerán aquí.</p>
             </div>
           ) : (
             <div className="divide-y">
-              {history.map((h) => (
-                <div key={h.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              {history.map((h) => {
+                const actionLabels = {
+                  activate: "Plan activado",
+                  extend: "Suscripción extendida",
+                  cancel: "Suscripción cancelada",
+                  apply_coupon: "Cupón aplicado",
+                  upgrade: "Plan mejorado",
+                  downgrade: "Plan rebajado",
+                };
+                const actionColors = {
+                  activate: "text-green-400 bg-green-500/10",
+                  extend: "text-blue-400 bg-blue-500/10",
+                  cancel: "text-red-400 bg-red-500/10",
+                  apply_coupon: "text-amber-400 bg-amber-500/10",
+                  upgrade: "text-emerald-400 bg-emerald-500/10",
+                  downgrade: "text-orange-400 bg-orange-500/10",
+                };
+                const label = actionLabels[h.action] || h.action;
+                const colorClass = actionColors[h.action] || "text-foreground/60 bg-muted";
+
+                return (
+                  <div key={h.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass.split(" ")[1]}`}>
+                      <CreditCard className={`h-4 w-4 ${colorClass.split(" ")[0]}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{label}</p>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-foreground/50">
+                        {h.plan_from && h.plan_to && (
+                          <span>
+                            <Badge variant="outline" className="text-xs py-0 mr-1">{h.plan_from}</Badge>
+                            →
+                            <Badge variant="outline" className="text-xs py-0 ml-1">{h.plan_to}</Badge>
+                          </span>
+                        )}
+                        {h.reason && <span>· {h.reason}</span>}
+                        {h.coupon_code && (
+                          <span className="font-mono text-amber-400">· {h.coupon_code}</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-foreground/50 shrink-0">
+                      {new Date(h.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium capitalize">{h.action}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {h.plan_from && h.plan_to ? `${h.plan_from} → ${h.plan_to}` : ""}
-                      {h.reason ? ` · ${h.reason}` : ""}
-                      {h.coupon_code ? ` · Cupón: ${h.coupon_code}` : ""}
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {new Date(h.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
