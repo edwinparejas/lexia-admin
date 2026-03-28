@@ -11,13 +11,13 @@ import { RefreshCw, CheckCircle, XCircle, AlertCircle, Clock, Cpu, HardDrive, Se
 const SERVICE_LOGOS = {};  // Using text initials instead
 
 const SERVICE_META = {
-  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E", logo: "https://supabase.com/favicon/favicon-32x32.png" },
-  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58", logo: "https://app.pinecone.io/favicon.ico" },
-  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f", logo: "https://cdn.openai.com/API/logo-assets/openai-logomark.png" },
-  resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6", logo: "https://resend.com/static/brand/resend-icon-black.png" },
-  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226", logo: "https://sentry.io/favicon.ico" },
-  langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b", logo: "https://langfuse.com/langfuse_logo_transbackground.svg" },
-  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff", logo: "https://images.stripeassets.com/fzn2n1nzq965/HTTOloNPhisV9P4hlMPNA/cacf1bb88b9fc492dfad34378d844280/Stripe_icon_-_square.svg" },
+  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E", logo: "/logos/supabase.png" },
+  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58", logo: "/logos/pinecone.png" },
+  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f", logo: "/logos/openai.png" },
+  resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6", logo: "/logos/resend.png" },
+  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226", logo: "/logos/sentry.png" },
+  langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b", logo: "/logos/langfuse.png" },
+  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff", logo: "/logos/stripe.png" },
 };
 
 export default function HealthPage() {
