@@ -17,6 +17,10 @@ export default function ProfilePage() {
   const [showPass, setShowPass] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
   const [passSuccess, setPassSuccess] = useState(false);
+  const [passErrors, setPassErrors] = useState({});
+  const [passShake, setPassShake] = useState(false);
+  const newPassRef = require("react").useRef(null);
+  const confirmPassRef = require("react").useRef(null);
   const [name, setName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
   const [nameSuccess, setNameSuccess] = useState(false);
@@ -53,14 +57,26 @@ export default function ProfilePage() {
 
   async function handleChangePassword(e) {
     e.preventDefault();
-    if (newPass.length < 6) {
-      toast("La contraseña debe tener al menos 6 caracteres", "error");
+    const errors = {};
+    if (!newPass) {
+      errors.newPass = "Ingresa una nueva contraseña";
+    } else if (newPass.length < 6) {
+      errors.newPass = "La contraseña debe tener al menos 6 caracteres";
+    }
+    if (!confirmPass) {
+      errors.confirmPass = "Confirma tu nueva contraseña";
+    } else if (newPass && newPass !== confirmPass) {
+      errors.confirmPass = "Las contraseñas no coinciden";
+    }
+    if (Object.keys(errors).length > 0) {
+      setPassErrors(errors);
+      setPassShake(true);
+      setTimeout(() => setPassShake(false), 500);
+      if (errors.newPass) newPassRef.current?.focus();
+      else if (errors.confirmPass) confirmPassRef.current?.focus();
       return;
     }
-    if (newPass !== confirmPass) {
-      toast("Las contraseñas no coinciden", "error");
-      return;
-    }
+    setPassErrors({});
     setPassLoading(true);
     try {
       const { createClient } = await import("@supabase/supabase-js");
@@ -159,18 +175,17 @@ export default function ProfilePage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleChangePassword} className="space-y-4">
+          <form onSubmit={handleChangePassword} className={`space-y-4 ${passShake ? "animate-shake" : ""}`}>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Nueva contraseña</label>
+              <label className={`text-sm font-medium ${passErrors.newPass ? "text-destructive" : ""}`}>Nueva contraseña</label>
               <div className="relative">
                 <input
+                  ref={newPassRef}
                   type={showPass ? "text" : "password"}
                   value={newPass}
-                  onChange={(e) => setNewPass(e.target.value)}
+                  onChange={(e) => { setNewPass(e.target.value); setPassErrors((p) => ({ ...p, newPass: undefined })); }}
                   placeholder="Minimo 6 caracteres"
-                  required
-                  minLength={6}
-                  className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none focus:border-primary pr-10"
+                  className={`w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none pr-10 transition-colors ${passErrors.newPass ? "border-destructive focus:border-destructive ring-2 ring-destructive/20" : "focus:border-primary"}`}
                 />
                 <button
                   type="button"
@@ -180,25 +195,21 @@ export default function ProfilePage() {
                   {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {passErrors.newPass && <p className="text-xs text-destructive mt-1">{passErrors.newPass}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Confirmar contraseña</label>
+              <label className={`text-sm font-medium ${passErrors.confirmPass ? "text-destructive" : ""}`}>Confirmar contraseña</label>
               <input
+                ref={confirmPassRef}
                 type="password"
                 value={confirmPass}
-                onChange={(e) => setConfirmPass(e.target.value)}
+                onChange={(e) => { setConfirmPass(e.target.value); setPassErrors((p) => ({ ...p, confirmPass: undefined })); }}
                 placeholder="Repite la nueva contraseña"
-                required
-                className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none focus:border-primary"
+                className={`w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none transition-colors ${passErrors.confirmPass ? "border-destructive focus:border-destructive ring-2 ring-destructive/20" : "focus:border-primary"}`}
               />
+              {passErrors.confirmPass && <p className="text-xs text-destructive mt-1">{passErrors.confirmPass}</p>}
             </div>
-            {newPass && confirmPass && newPass !== confirmPass && (
-              <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
-            )}
-            {newPass && newPass.length > 0 && newPass.length < 6 && (
-              <p className="text-xs text-amber-500">Minimo 6 caracteres</p>
-            )}
-            <Button type="submit" disabled={passLoading || !newPass || !confirmPass || newPass !== confirmPass || newPass.length < 6}>
+            <Button type="submit" disabled={passLoading}>
               {passSuccess ? (
                 <><Check className="h-4 w-4 mr-1" /> Contraseña actualizada</>
               ) : (
