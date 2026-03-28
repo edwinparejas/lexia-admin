@@ -95,27 +95,41 @@ export default function HealthPage() {
       </div>
 
       {/* Overall status */}
-      <Card className={`border-l-4 ${overallStatus === "healthy" ? "border-l-green-500" : overallStatus === "degraded" ? "border-l-amber-500" : "border-l-red-500"}`}>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
+      {loading && !data ? (
+        <Card className="border-l-4 border-l-primary">
+          <CardContent className="py-6">
             <div className="flex items-center gap-3">
-              <OverallIcon className={`h-5 w-5 ${overall.iconColor}`} />
+              <RefreshCw className="h-5 w-5 text-primary animate-spin" />
               <div>
-                <span className="font-medium">{overall.label}</span>
-                <p className="text-xs text-foreground/50">
-                  {counts.ok} conectados · {counts.warning} advertencias · {counts.error} errores
-                </p>
+                <span className="font-medium">Verificando servicios...</span>
+                <p className="text-xs text-foreground/50">Probando la conectividad con cada servicio externo</p>
               </div>
             </div>
-            <Badge className={overall.badge}>
-              {overallStatus === "healthy" ? "Saludable" : overallStatus === "degraded" ? "Degradado" : "No disponible"}
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className={`border-l-4 ${overallStatus === "healthy" ? "border-l-green-500" : overallStatus === "degraded" ? "border-l-amber-500" : "border-l-red-500"}`}>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <OverallIcon className={`h-5 w-5 ${overall.iconColor}`} />
+                <div>
+                  <span className="font-medium">{overall.label}</span>
+                  <p className="text-xs text-foreground/50">
+                    {counts.ok} conectados · {counts.warning} advertencias · {counts.error} errores
+                  </p>
+                </div>
+              </div>
+              <Badge className={overall.badge}>
+                {overallStatus === "healthy" ? "Saludable" : overallStatus === "degraded" ? "Degradado" : "No disponible"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Service cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {data && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {Object.entries(services).map(([name, service]) => {
           const meta = SERVICE_META[name] || { label: name, desc: "", icon: Server, envVar: "" };
           const Icon = meta.icon;
@@ -166,7 +180,7 @@ export default function HealthPage() {
             </Card>
           );
         })}
-      </div>
+      </div>}
 
       {/* System info */}
       {systemInfo && Object.keys(systemInfo).length > 0 && (
