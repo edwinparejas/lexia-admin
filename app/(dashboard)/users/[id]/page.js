@@ -127,7 +127,9 @@ function SubscriptionTab({ user, userId, onRefresh, toast }) {
             <Button size="sm" variant="outline" onClick={() => setShowExtend(!showExtend)}>
               <Clock className="h-3.5 w-3.5 mr-1" /> Extender
             </Button>
-            <Button size="sm" variant="outline" className="text-destructive" onClick={() => { if (confirm("¿Cancelar suscripción?")) handleAction("cancel", { reason: "Cancelación manual" }); }}>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={() => {
+              if (window.confirm("¿Cancelar la suscripción de este usuario?")) handleAction("cancel", { reason: "Cancelación manual" });
+            }}>
               Cancelar suscripción
             </Button>
           </>

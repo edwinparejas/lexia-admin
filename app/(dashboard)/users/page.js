@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp, ExternalLink } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp, ExternalLink, X, AlertTriangle, Shield } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -217,13 +218,40 @@ export default function UsersPage() {
     } catch {}
   }
 
-  async function handleBan(userId, ban) {
-    const reason = ban ? prompt("Motivo de suspension:") : "";
-    if (ban && reason === null) return;
+  const toast = useToast();
+  const [banModal, setBanModal] = useState(null); // { userId, userName, action: "ban"|"unban" }
+  const [banReason, setBanReason] = useState("");
+  const [banLoading, setBanLoading] = useState(false);
+
+  async function handleBan(userId, ban, userName) {
+    if (ban) {
+      setBanModal({ userId, userName, action: "ban" });
+      setBanReason("");
+    } else {
+      // Unban directly
+      try {
+        await apiFetch(`/api/admin/users/${userId}/ban`, { method: "POST", body: JSON.stringify({ ban: false, reason: "" }) });
+        toast("Usuario activado", "success");
+        loadUsers(search);
+      } catch {
+        toast("Error al activar usuario", "error");
+      }
+    }
+  }
+
+  async function confirmBan() {
+    if (!banModal) return;
+    setBanLoading(true);
     try {
-      await apiFetch(`/api/admin/users/${userId}/ban`, { method: "POST", body: JSON.stringify({ ban, reason }) });
+      await apiFetch(`/api/admin/users/${banModal.userId}/ban`, { method: "POST", body: JSON.stringify({ ban: true, reason: banReason }) });
+      toast("Usuario suspendido", "success");
+      setBanModal(null);
       loadUsers(search);
-    } catch {}
+    } catch {
+      toast("Error al suspender usuario", "error");
+    } finally {
+      setBanLoading(false);
+    }
   }
 
   const paginated = users.slice(page * perPage, (page + 1) * perPage);
@@ -313,7 +341,7 @@ export default function UsersPage() {
                           <Button size="sm" variant="ghost"><ExternalLink className="h-3 w-3 mr-1" />Detalle</Button>
                         </Link>
                         <Button size="sm" variant="ghost" onClick={() => { setEditingId(u.id); setEditPlan(u.plan || "trial"); }}>Editar</Button>
-                        <Button size="sm" variant="ghost" className={u.is_banned ? "text-green-400" : "text-destructive"} onClick={() => handleBan(u.id, !u.is_banned)}>
+                        <Button size="sm" variant="ghost" className={u.is_banned ? "text-green-400" : "text-destructive"} onClick={() => handleBan(u.id, !u.is_banned, u.name || u.identifier)}>
                           {u.is_banned ? "Activar" : "Suspender"}
                         </Button>
                       </div>
@@ -342,6 +370,48 @@ export default function UsersPage() {
           </div>
         )}
       </Card>
+
+      {/* Ban modal */}
+      {banModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background border rounded-xl shadow-2xl max-w-sm w-full animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-4 p-5 pb-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-semibold">Suspender usuario</h3>
+                <p className="text-sm text-foreground/60 mt-1">
+                  ¿Suspender a <strong>{banModal.userName}</strong>? No podrá acceder a su cuenta.
+                </p>
+              </div>
+              <button onClick={() => setBanModal(null)} className="text-foreground/40 hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 pb-2">
+              <label className="text-sm font-medium block mb-1.5">Motivo de la suspensión</label>
+              <textarea
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                placeholder="Ej: Uso indebido del servicio, spam, etc."
+                rows={2}
+                className="w-full px-3 py-2 bg-muted border rounded-lg text-sm focus:outline-none focus:border-primary resize-y"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 pb-5 pt-3">
+              <Button variant="ghost" size="sm" onClick={() => setBanModal(null)}>Cancelar</Button>
+              <button
+                onClick={confirmBan}
+                disabled={banLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50"
+              >
+                {banLoading ? "Suspendiendo..." : "Suspender usuario"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
