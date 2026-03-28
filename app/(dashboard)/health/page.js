@@ -11,13 +11,13 @@ import { RefreshCw, CheckCircle, XCircle, AlertCircle, Clock, Cpu, HardDrive, Se
 const SERVICE_LOGOS = {};  // Using text initials instead
 
 const SERVICE_META = {
-  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E", initials: "SB" },
-  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58", initials: "PC" },
-  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f", initials: "AI" },
-  resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6", initials: "RS" },
-  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226", initials: "ST" },
-  langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b", initials: "LF" },
-  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff", initials: "SP" },
+  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E", logo: "https://supabase.com/favicon/favicon-32x32.png" },
+  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58", logo: "https://app.pinecone.io/favicon.ico" },
+  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f", logo: "https://cdn.openai.com/API/logo-assets/openai-logomark.png" },
+  resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6", logo: "https://resend.com/static/brand/resend-icon-black.png" },
+  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226", logo: "https://sentry.io/favicon.ico" },
+  langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b", logo: "https://langfuse.com/langfuse_logo_transbackground.svg" },
+  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff", logo: "https://images.stripeassets.com/fzn2n1nzq965/HTTOloNPhisV9P4hlMPNA/cacf1bb88b9fc492dfad34378d844280/Stripe_icon_-_square.svg" },
 };
 
 export default function HealthPage() {
@@ -125,8 +125,12 @@ export default function HealthPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold" style={{ background: `${meta.color}18`, color: meta.color }}>
-                      {meta.initials}
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden" style={{ background: `${meta.color}15` }}>
+                      {meta.logo ? (
+                        <img src={meta.logo} alt={meta.label} className="w-5 h-5 object-contain" onError={(e) => { e.target.style.display = "none"; e.target.parentElement.textContent = meta.label[0]; }} />
+                      ) : (
+                        <span className="text-xs font-bold" style={{ color: meta.color }}>{meta.label[0]}</span>
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
