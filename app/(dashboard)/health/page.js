@@ -2,34 +2,63 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Activity, Database, Brain, Mail, Server, Shield, BarChart3, CreditCard,
-  RefreshCw, CheckCircle, XCircle, AlertCircle, Clock, Cpu, HardDrive,
-} from "lucide-react";
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, Clock, Cpu, HardDrive, Server, Activity } from "lucide-react";
+
+/* SVG brand icons for each service */
+const SERVICE_LOGOS = {
+  supabase: (
+    <svg viewBox="0 0 109 113" className="h-5 w-5" fill="none">
+      <path d="M63.7076 110.284C60.8481 113.885 55.0502 111.912 54.9813 107.314L53.9738 40.0627L99.1935 40.0627C107.384 40.0627 111.952 49.5228 106.859 55.9374L63.7076 110.284Z" fill="#3ECF8E"/>
+      <path d="M63.7076 110.284C60.8481 113.885 55.0502 111.912 54.9813 107.314L53.9738 40.0627L99.1935 40.0627C107.384 40.0627 111.952 49.5228 106.859 55.9374L63.7076 110.284Z" fill="url(#supabase-a)" fillOpacity="0.2"/>
+      <path d="M45.317 2.07103C48.1765 -1.53037 53.9745 0.442937 54.0434 5.041L54.4849 72.2922H9.83113C1.64038 72.2922 -2.92775 62.8321 2.1655 56.4175L45.317 2.07103Z" fill="#3ECF8E"/>
+      <defs><linearGradient id="supabase-a" x1="53.9738" y1="54.974" x2="94.1635" y2="71.8295" gradientUnits="userSpaceOnUse"><stop stopColor="#249361"/><stop offset="1" stopColor="#3ECF8E"/></linearGradient></defs>
+    </svg>
+  ),
+  pinecone: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+      <path d="M12 2L4 6v6l8 4 8-4V6l-8-4z" fill="#0F9D58" opacity="0.8"/>
+      <path d="M12 12l8-4M12 12v10M12 12L4 8" stroke="#0F9D58" strokeWidth="1.5"/>
+    </svg>
+  ),
+  openai: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.998 5.998 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+    </svg>
+  ),
+  resend: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+      <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M2 7l10 7 10-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  ),
+  sentry: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+      <path d="M13.91 2.505c-.873-1.448-2.972-1.448-3.845 0L6.574 8.17a7.085 7.085 0 0 1 5.403 6.861h-2.21a4.875 4.875 0 0 0-4.476-3.04l-2.755 4.572c-.873 1.449.218 3.261 1.922 3.261h1.68a.728.728 0 0 0 0-1.455H4.46c-.57 0-.932-.606-.641-1.089l1.958-3.249A3.42 3.42 0 0 1 8.86 16.49h3.58a.727.727 0 0 0 .727-.727 8.54 8.54 0 0 0-5.062-7.795L11.988 2.15c.292-.484.994-.484 1.285 0l6.893 11.438c.29.483-.073 1.089-.643 1.089h-1.192a.728.728 0 0 0 0 1.455h1.192c1.704 0 2.795-1.812 1.923-3.261z"/>
+    </svg>
+  ),
+  langfuse: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M3 12h4l3-9 4 18 3-9h4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  stripe: (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+      <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+    </svg>
+  ),
+};
 
 const SERVICE_META = {
-  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", icon: Database, envVar: "SUPABASE_URL + SUPABASE_KEY" },
-  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", icon: Database, envVar: "PINECONE_API_KEY" },
-  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o, embeddings)", icon: Brain, envVar: "OPENAI_API_KEY" },
-  resend:    { label: "Resend", desc: "Envío de emails transaccionales", icon: Mail, envVar: "RESEND_API_KEY" },
-  sentry:    { label: "Sentry", desc: "Monitoreo y captura de errores", icon: Shield, envVar: "SENTRY_DSN" },
-  langfuse:  { label: "Langfuse", desc: "Observabilidad de llamadas LLM", icon: BarChart3, envVar: "LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY" },
-  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", icon: CreditCard, envVar: "STRIPE_SECRET_KEY" },
-};
-
-const STATUS_CONFIG = {
-  ok:      { dot: "bg-green-500", badge: "bg-green-500/10 text-green-400 border-green-500/20", label: "Conectado", icon: CheckCircle, iconColor: "text-green-400" },
-  warning: { dot: "bg-amber-500", badge: "bg-amber-500/10 text-amber-400 border-amber-500/20", label: "Advertencia", icon: AlertCircle, iconColor: "text-amber-400" },
-  error:   { dot: "bg-red-500",   badge: "bg-red-500/10 text-red-400 border-red-500/20", label: "Error", icon: XCircle, iconColor: "text-red-400" },
-};
-
-const OVERALL_CONFIG = {
-  healthy:   { badge: "bg-green-500/10 text-green-400 border-green-500/20", label: "Todos los servicios operativos", icon: CheckCircle, iconColor: "text-green-400" },
-  degraded:  { badge: "bg-amber-500/10 text-amber-400 border-amber-500/20", label: "Algunos servicios con problemas", icon: AlertCircle, iconColor: "text-amber-400" },
-  unhealthy: { badge: "bg-red-500/10 text-red-400 border-red-500/20", label: "Servicios no disponibles", icon: XCircle, iconColor: "text-red-400" },
+  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E" },
+  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58" },
+  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f" },
+  resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6" },
+  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#362d59" },
+  langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b" },
+  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff" },
 };
 
 export default function HealthPage() {
@@ -50,177 +79,144 @@ export default function HealthPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchHealth();
-  }, [fetchHealth]);
+  useEffect(() => { fetchHealth(); }, [fetchHealth]);
 
-  const overallStatus = data?.status || "unhealthy";
-  const overall = OVERALL_CONFIG[overallStatus] || OVERALL_CONFIG.unhealthy;
-  const OverallIcon = overall.icon;
   const services = data?.services || {};
   const systemInfo = data?.system || {};
-
   const counts = { ok: 0, warning: 0, error: 0 };
   Object.values(services).forEach((s) => { counts[s?.status || "error"]++; });
+  const total = counts.ok + counts.warning + counts.error;
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Activity className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">Salud del Sistema</h1>
-            <p className="text-sm text-foreground/60">
-              Verifica la conectividad real con cada servicio externo
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold">Salud del Sistema</h1>
+          <p className="text-sm text-foreground/60">Conectividad con servicios externos</p>
         </div>
         <div className="flex items-center gap-3">
           {lastChecked && (
-            <span className="text-xs text-foreground/50 flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {lastChecked.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-            </span>
+            <span className="text-xs text-foreground/40">{lastChecked.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
           )}
           <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Verificando..." : "Verificar ahora"}
+            {loading ? "Verificando..." : "Verificar"}
           </Button>
         </div>
       </div>
 
-      {/* Overall status */}
+      {/* Summary bar */}
       {loading && !data ? (
-        <Card className="border-l-4 border-l-primary">
-          <CardContent className="py-6">
-            <div className="flex items-center gap-3">
-              <RefreshCw className="h-5 w-5 text-primary animate-spin" />
-              <div>
-                <span className="font-medium">Verificando servicios...</span>
-                <p className="text-xs text-foreground/50">Probando la conectividad con cada servicio externo</p>
+        <div className="flex items-center gap-3 p-4 rounded-xl border bg-card">
+          <RefreshCw className="h-5 w-5 text-primary animate-spin" />
+          <span className="text-sm">Verificando conectividad con los servicios...</span>
+        </div>
+      ) : data && (
+        <div className="flex items-center gap-4 p-4 rounded-xl border bg-card">
+          <div className="flex items-center gap-3 flex-1">
+            {counts.ok > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                <span className="text-sm font-medium">{counts.ok}</span>
+                <span className="text-xs text-foreground/50">conectados</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className={`border-l-4 ${overallStatus === "healthy" ? "border-l-green-500" : overallStatus === "degraded" ? "border-l-amber-500" : "border-l-red-500"}`}>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <OverallIcon className={`h-5 w-5 ${overall.iconColor}`} />
-                <div>
-                  <span className="font-medium">{overall.label}</span>
-                  <p className="text-xs text-foreground/50">
-                    {counts.ok} conectados · {counts.warning} advertencias · {counts.error} errores
-                  </p>
-                </div>
+            )}
+            {counts.warning > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="text-sm font-medium">{counts.warning}</span>
+                <span className="text-xs text-foreground/50">advertencias</span>
               </div>
-              <Badge className={overall.badge}>
-                {overallStatus === "healthy" ? "Saludable" : overallStatus === "degraded" ? "Degradado" : "No disponible"}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+            {counts.error > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="text-sm font-medium">{counts.error}</span>
+                <span className="text-xs text-foreground/50">errores</span>
+              </div>
+            )}
+          </div>
+          {/* Progress dots */}
+          <div className="flex gap-1">
+            {Object.values(services).map((s, i) => (
+              <div key={i} className={`w-2 h-2 rounded-full ${s?.status === "ok" ? "bg-green-500" : s?.status === "warning" ? "bg-amber-500" : "bg-red-500"}`} />
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Service cards */}
-      {data && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {Object.entries(services).map(([name, service]) => {
-          const meta = SERVICE_META[name] || { label: name, desc: "", icon: Server, envVar: "" };
-          const Icon = meta.icon;
-          const svcStatus = service?.status || "error";
-          const cfg = STATUS_CONFIG[svcStatus] || STATUS_CONFIG.error;
-          const SvcIcon = cfg.icon;
+      {data && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {Object.entries(services).map(([name, service]) => {
+            const meta = SERVICE_META[name] || { label: name, desc: "", envVar: "", color: "#666" };
+            const logo = SERVICE_LOGOS[name];
+            const status = service?.status || "error";
+            const isOk = status === "ok";
+            const isWarn = status === "warning";
 
-          return (
-            <Card key={name} className={`transition-colors ${svcStatus === "error" ? "border-red-500/30 bg-red-500/5" : svcStatus === "warning" ? "border-amber-500/30 bg-amber-500/5" : "border-green-500/10"}`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${svcStatus === "ok" ? "bg-green-500/10" : svcStatus === "warning" ? "bg-amber-500/10" : "bg-red-500/10"}`}>
-                      <Icon className={`h-4 w-4 ${svcStatus === "ok" ? "text-green-400" : svcStatus === "warning" ? "text-amber-400" : "text-red-400"}`} />
+            return (
+              <div
+                key={name}
+                className={`rounded-xl border p-4 transition-colors ${
+                  isOk ? "border-green-500/20" : isWarn ? "border-amber-500/20 bg-amber-500/5" : "border-red-500/20 bg-red-500/5"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0" style={{ color: meta.color }}>
+                      {logo || <Server className="h-5 w-5" />}
                     </div>
                     <div>
-                      <CardTitle className="text-sm font-medium">{meta.label}</CardTitle>
+                      <p className="text-sm font-semibold">{meta.label}</p>
                       <p className="text-xs text-foreground/50">{meta.desc}</p>
                     </div>
                   </div>
-                  <div className={`w-3 h-3 rounded-full ${cfg.dot} ${svcStatus === "ok" ? "animate-pulse" : ""}`} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <SvcIcon className={`h-3.5 w-3.5 ${cfg.iconColor}`} />
-                  <Badge className={`text-xs ${cfg.badge}`}>{cfg.label}</Badge>
-                  {service?.latency_ms != null && (
-                    <span className="text-xs text-foreground/50 ml-auto">{service.latency_ms}ms</span>
+                  {isOk ? (
+                    <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                  ) : isWarn ? (
+                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                   )}
                 </div>
-                {service?.details && (
-                  <p className={`text-xs font-medium ${svcStatus === "ok" ? "text-green-400" : svcStatus === "warning" ? "text-amber-400" : "text-red-400"}`}>
-                    {service.details}
-                  </p>
-                )}
-                {svcStatus !== "ok" && (
-                  <div className={`rounded-lg p-2.5 text-xs space-y-1 ${svcStatus === "error" ? "bg-red-500/10 border border-red-500/20" : "bg-amber-500/10 border border-amber-500/20"}`}>
-                    <p className="font-medium">{svcStatus === "error" ? "Acción requerida:" : "Para activar:"}</p>
-                    <p className="text-foreground/70">Configura la variable de entorno en EasyPanel:</p>
-                    <p className="font-mono font-medium">{meta.envVar}</p>
-                  </div>
-                )}
-                {svcStatus === "ok" && (
-                  <p className="text-xs text-foreground/40 font-mono">{meta.envVar}</p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>}
 
-      {/* System info */}
-      {systemInfo && Object.keys(systemInfo).length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Server className="h-4 w-4 text-foreground/60" />
-              <CardTitle className="text-sm font-medium">Servidor</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Clock className="h-4 w-4 text-foreground/50" />
-                <div>
-                  <p className="text-xs text-foreground/50">Uptime</p>
-                  <p className="text-sm font-medium">{systemInfo.uptime_hours != null ? `${systemInfo.uptime_hours}h` : systemInfo.uptime || "—"}</p>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-medium ${isOk ? "text-green-500" : isWarn ? "text-amber-500" : "text-red-500"}`}>
+                    {service?.details || (isOk ? "Conectado" : isWarn ? "No configurado" : "Error")}
+                  </span>
+                  {service?.latency_ms != null && (
+                    <span className="text-xs text-foreground/40">{service.latency_ms}ms</span>
+                  )}
                 </div>
+
+                {!isOk && (
+                  <p className="text-xs text-foreground/40 font-mono mt-2 pt-2 border-t border-dashed">{meta.envVar}</p>
+                )}
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Cpu className="h-4 w-4 text-foreground/50" />
-                <div>
-                  <p className="text-xs text-foreground/50">Python</p>
-                  <p className="text-sm font-medium">{systemInfo.python || systemInfo.python_version || "—"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <HardDrive className="h-4 w-4 text-foreground/50" />
-                <div>
-                  <p className="text-xs text-foreground/50">Memoria</p>
-                  <p className="text-sm font-medium">{systemInfo.memory || "—"}</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            );
+          })}
+        </div>
       )}
 
-      {/* Auto-refresh notice */}
-      <p className="text-xs text-foreground/40 text-center">
-        Cada verificación prueba la conectividad real con el servicio
-      </p>
+      {/* System info */}
+      {data && systemInfo && Object.keys(systemInfo).length > 0 && (
+        <div className="flex items-center gap-6 p-4 rounded-xl border bg-card text-sm">
+          <div className="flex items-center gap-2 text-foreground/60">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Uptime: <span className="font-medium text-foreground">{systemInfo.uptime_hours != null ? `${systemInfo.uptime_hours}h` : "—"}</span></span>
+          </div>
+          <div className="flex items-center gap-2 text-foreground/60">
+            <Cpu className="h-3.5 w-3.5" />
+            <span>Python: <span className="font-medium text-foreground">{systemInfo.python || "—"}</span></span>
+          </div>
+          <div className="flex items-center gap-2 text-foreground/60">
+            <HardDrive className="h-3.5 w-3.5" />
+            <span>RAM: <span className="font-medium text-foreground">{systemInfo.memory || "—"}</span></span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
