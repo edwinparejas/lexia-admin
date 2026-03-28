@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp, ExternalLink, X, AlertTriangle, Shield } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, TrendingUp, ExternalLink, X, AlertTriangle, Shield, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -264,6 +264,10 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold">Usuarios</h1>
           <p className="text-sm text-muted-foreground">{users.length} registrados</p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={() => loadUsers(search)} title="Actualizar">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -271,6 +275,7 @@ export default function UsersPage() {
           </div>
           <Button type="submit" variant="outline" size="sm">Buscar</Button>
         </form>
+        </div>
       </div>
 
       <Card>
