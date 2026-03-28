@@ -7,6 +7,7 @@ import {
   ChevronLeft, User, Mail, CreditCard, Calendar, MessageSquare,
   FileText, TrendingUp, Shield, Clock, Zap, BarChart3, ScrollText,
   ChevronDown, Bot, DollarSign, Scale, Search, Sparkles, HelpCircle,
+  Copy, Check,
 } from "lucide-react";
 import { apiFetch } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -293,6 +294,25 @@ const QUERY_TYPE_COLORS = {
   CONSULTA_PRODUCTO: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
 };
 
+function CopyBtn({ text }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy(e) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 p-1.5 rounded-lg bg-background/80 border opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted"
+      title={copied ? "Copiado" : "Copiar mensaje"}
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5 text-foreground/50" />}
+    </button>
+  );
+}
+
 function ConversationItem({ conversation: c }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState(null);
@@ -369,10 +389,11 @@ function ConversationItem({ conversation: c }) {
 
                   if (m.role === "user") {
                     return (
-                      <div key={m.id} className="flex justify-end">
+                      <div key={m.id} className="group flex justify-end">
                         <div className="max-w-[75%] space-y-1">
-                          <div className="rounded-2xl rounded-br-md bg-primary text-primary-foreground px-4 py-3">
+                          <div className="relative rounded-2xl rounded-br-md bg-primary text-primary-foreground px-4 py-3">
                             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
+                            <CopyBtn text={m.content} />
                           </div>
                           <div className="flex items-center justify-end gap-1.5 pr-1">
                             <Clock className="h-3 w-3 text-foreground/50" />
@@ -388,7 +409,7 @@ function ConversationItem({ conversation: c }) {
                   // Assistant message
                   const isLong = m.content?.length > 600;
                   return (
-                    <div key={m.id} className="flex gap-3">
+                    <div key={m.id} className="group flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
                         <Scale className="h-4 w-4 text-primary" />
                       </div>
@@ -404,8 +425,9 @@ function ConversationItem({ conversation: c }) {
                           )}
                         </div>
                         {/* Content */}
-                        <div className={`rounded-2xl rounded-tl-md border bg-card px-4 py-3 ${isLong ? "max-h-[400px] overflow-y-auto" : ""}`}>
+                        <div className={`relative rounded-2xl rounded-tl-md border bg-card px-4 py-3 ${isLong ? "max-h-[400px] overflow-y-auto" : ""}`}>
                           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
+                          <CopyBtn text={m.content} />
                         </div>
                         {/* Footer */}
                         <div className="flex items-center gap-3 px-1">
