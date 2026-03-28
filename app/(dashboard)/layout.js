@@ -68,43 +68,41 @@ function AdminUserMenu({ user, darkMode, toggleTheme, onLogout }) {
 
       {open && (
         <div className="absolute bottom-full left-2 right-2 mb-1 bg-popover text-popover-foreground border rounded-lg shadow-xl z-50 overflow-hidden">
-              <div className="px-4 py-3 border-b bg-muted/30">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
-                    {initials}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{user?.name || "Admin"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.identifier}</p>
-                  </div>
-                </div>
+          <div className="px-4 py-3 border-b bg-muted/30">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                {initials}
               </div>
-              <div className="py-1">
-                <Link href="/profile" onClick={() => setOpen(false)} className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${pathname === "/profile" ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
-                  <User className="h-4 w-4" />
-                  Mi perfil
-                </Link>
-                <button onClick={toggleTheme} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors text-left">
-                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  {darkMode ? "Modo claro" : "Modo oscuro"}
-                </button>
-                <a
-                  href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://lexia-pe.vercel.app/dashboard"}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Ir al dashboard usuario
-                </a>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">{user?.name || "Admin"}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.identifier}</p>
               </div>
-              <Separator />
-              <div className="py-1">
-                <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors text-left">
-                  <LogOut className="h-4 w-4" />
-                  Cerrar sesion
-                </button>
-              </div>
-            </>
-          )}
+            </div>
+          </div>
+          <div className="py-1">
+            <Link href="/profile" onClick={() => setOpen(false)} className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${pathname === "/profile" ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
+              <User className="h-4 w-4" />
+              Mi perfil
+            </Link>
+            <button onClick={toggleTheme} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors text-left">
+              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {darkMode ? "Modo claro" : "Modo oscuro"}
+            </button>
+            <a
+              href={process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://lexia-pe.vercel.app/dashboard"}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Ir al dashboard usuario
+            </a>
+          </div>
+          <Separator />
+          <div className="py-1">
+            <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors text-left">
+              <LogOut className="h-4 w-4" />
+              Cerrar sesion
+            </button>
+          </div>
         </div>
       )}
     </div>
