@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { getSession, apiFetch } from "@/lib/auth";
+import { ToastProvider } from "@/components/ui/toast";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -81,6 +83,8 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
+    <ToastProvider>
+    <ConfirmProvider>
     <div className="flex h-screen bg-background">
       <aside className="w-56 border-r bg-card flex flex-col shrink-0">
         <div className="p-3 flex items-center justify-between">
@@ -148,5 +152,7 @@ export default function DashboardLayout({ children }) {
         {children}
       </main>
     </div>
+    </ConfirmProvider>
+    </ToastProvider>
   );
 }

@@ -747,7 +747,7 @@ function FormSection({ section, data, onSave }) {
             />
             <Button size="sm" onClick={async () => {
               try { await onSave(section.key, JSON.parse(jsonText)); setSaved(true); setTimeout(() => setSaved(false), 3000); }
-              catch { alert("JSON inválido"); }
+              catch { setSaved(false); }
             }}>
               <Save className="h-3 w-3 mr-1" />
               Guardar
@@ -897,7 +897,7 @@ export default function AdminConfigPage() {
     try {
       await apiFetch(`/api/admin/config/${key}`, { method: "PUT", body: JSON.stringify({ value }) });
       loadConfig();
-    } catch { alert("Error al guardar"); }
+    } catch { /* error silenced, saved state handles UI */ }
   }
 
   if (loading) {

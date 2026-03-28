@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 import {
   ChevronLeft, User, Mail, CreditCard, Calendar, MessageSquare,
   FileText, TrendingUp, Shield, Clock, Zap, BarChart3, ScrollText,
@@ -50,7 +51,7 @@ const ACTION_LABELS = {
   "system.alert.critical": "Alerta crítica",
 };
 
-function SubscriptionTab({ user, userId, onRefresh }) {
+function SubscriptionTab({ user, userId, onRefresh, toast }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -67,12 +68,13 @@ function SubscriptionTab({ user, userId, onRefresh }) {
     setActionLoading(true);
     try {
       const res = await apiFetch(`/api/admin/users/${userId}/subscription`, { method: "POST", body: JSON.stringify({ action, ...body }) });
-      if (res?.error) { alert(res.error); return; }
+      if (res?.error) { toast(res.error, "error"); return; }
+      toast("Acción completada", "success");
       onRefresh();
       setShowActivate(false); setShowExtend(false); setShowCoupon(false);
       const h = await apiFetch(`/api/admin/users/${userId}/subscription-history`);
       setHistory(h);
-    } catch (e) { alert("Error"); }
+    } catch (e) { toast("Error al procesar la acción", "error"); }
     finally { setActionLoading(false); }
   }
 
@@ -434,6 +436,7 @@ export default function UserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const [detail, setDetail] = useState(null);
   const [usage, setUsage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -665,7 +668,7 @@ export default function UserDetailPage() {
       )}
 
       {/* Tab: Subscription */}
-      {tab === "subscription" && <SubscriptionTab user={user} userId={id} onRefresh={() => { setLoading(true); apiFetch(`/api/admin/users/${id}/detail`).then(setDetail).finally(() => setLoading(false)); }} />}
+      {tab === "subscription" && <SubscriptionTab user={user} userId={id} toast={toast} onRefresh={() => { setLoading(true); apiFetch(`/api/admin/users/${id}/detail`).then(setDetail).finally(() => setLoading(false)); }} />}
 
       {/* Tab: Conversations */}
       {tab === "conversations" && (
