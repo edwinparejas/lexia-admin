@@ -283,7 +283,7 @@ export default function IndexingPage() {
                     {d.document_type}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground shrink-0">
-                    {new Date(d.indexed_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+                    {new Date(d.loaded_at || d.indexed_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
                   </span>
                 </div>
               ))}
