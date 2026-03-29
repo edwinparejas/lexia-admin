@@ -94,17 +94,11 @@ const CONFIG_SECTIONS = [
   {
     key: "llm_config",
     label: "Modelos LLM",
-    desc: "Selecciona qué modelo de IA usa cada componente del sistema. Modelos más potentes dan mejores respuestas pero cuestan más. Soporta OpenAI, Claude (Anthropic), Gemini (Google), Groq y Ollama (local/gratis).",
+    desc: "La configuracion de modelos LLM se traslado a la pagina de Proveedores LLM para una gestion unificada.",
     category: "IA",
-    type: "llm",
-    fields: [
-      { key: "clasificador_model", label: "Clasificador", hint: "Determina el tipo de consulta del usuario (búsqueda legal, análisis profundo, consulta general, etc.) con una sola palabra. Solo necesita un modelo barato y rápido porque la tarea es muy simple.", callsPerQuery: 1, docs: "https://platform.openai.com/docs/models" },
-      { key: "agent_model", label: "Agente principal", hint: "El modelo más importante del sistema. Responde consultas generales, genera documentos legales y mantiene la conversación. Un modelo más potente aquí mejora directamente la calidad de las respuestas.", callsPerQuery: 1, docs: "https://platform.openai.com/docs/models" },
-      { key: "crew_model", label: "CrewAI (análisis profundo)", hint: "Usado por los 4 agentes especializados (investigador, analista, validador, redactor) cuando un usuario solicita un análisis profundo. Cada análisis hace entre 8 y 12 llamadas al modelo, por lo que el costo se multiplica.", callsPerQuery: 10, docs: "https://docs.crewai.com/" },
-      { key: "rag_model", label: "RAG (búsqueda legal)", hint: "Cuando el usuario busca leyes o artículos, el sistema recupera fragmentos relevantes de Pinecone y este modelo sintetiza la respuesta final a partir de esos fragmentos.", callsPerQuery: 1, docs: "https://docs.llamaindex.ai/" },
-      { key: "producto_model", label: "Asistente de ventas", hint: "Responde preguntas sobre LexIA como producto (precios, funcionalidades, planes). Es una tarea simple, usar un modelo económico es suficiente.", callsPerQuery: 1 },
-      { key: "embedding_model", label: "Embeddings", hint: "Convierte texto en vectores numéricos para la búsqueda semántica. Cambiar este modelo requiere REINDEXAR toda la base legal en Pinecone (proceso largo y costoso). No cambiar a menos que sea estrictamente necesario.", type: "select", options: ["text-embedding-3-small", "text-embedding-3-large"] },
-    ],
+    type: "redirect",
+    redirectTo: "/providers",
+    redirectLabel: "Ir a Proveedores LLM",
   },
   {
     key: "rag_config",
@@ -962,7 +956,22 @@ export default function AdminConfigPage() {
 
       <div className="space-y-3">
         {filteredSections.map((section) => (
-          section.type === "llm" ? (
+          section.type === "redirect" ? (
+            <Card key={section.key}>
+              <button className="w-full text-left p-5 flex items-center justify-between" onClick={() => {}}>
+                <div className="flex items-center gap-3">
+                  {(() => { const Icon = SECTION_ICONS[section.key] || Settings; return <Icon className="h-5 w-5 text-primary" />; })()}
+                  <div>
+                    <h3 className="text-sm font-semibold">{section.label}</h3>
+                    <p className="text-xs text-foreground/60">{section.desc}</p>
+                  </div>
+                </div>
+                <a href={section.redirectTo} className="text-xs text-primary hover:underline flex items-center gap-1">
+                  {section.redirectLabel} <ExternalLink className="h-3 w-3" />
+                </a>
+              </button>
+            </Card>
+          ) : section.type === "llm" ? (
             <LlmSection
               key={section.key}
               section={section}
