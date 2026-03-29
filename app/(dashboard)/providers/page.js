@@ -31,13 +31,32 @@ const PROVIDER_COLORS = {
   ollama: "#1a1a2e",
 };
 
+const PROVIDER_LOGOS = {
+  openai: "/logos/openai.svg",
+  anthropic: "/logos/anthropic.svg",
+  google: "/logos/google.svg",
+  groq: "/logos/groq.svg",
+  openrouter: "/logos/openrouter.svg",
+  ollama: "/logos/ollama.svg",
+};
+
 function ProviderDot({ provider, size = "w-2.5 h-2.5" }) {
   return <div className={`${size} rounded-full shrink-0`} style={{ backgroundColor: PROVIDER_COLORS[provider] || "#666" }} />;
 }
 
 function ProviderIcon({ provider }) {
+  const logo = PROVIDER_LOGOS[provider];
   const color = PROVIDER_COLORS[provider] || "#666";
   const initials = provider.slice(0, 2).toUpperCase();
+
+  if (logo) {
+    return (
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-muted shrink-0 p-1.5">
+        <img src={logo} alt={provider} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
   return (
     <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ backgroundColor: color }}>
       {initials}
