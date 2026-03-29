@@ -182,7 +182,7 @@ export default function IndexingPage() {
             <Upload className={`h-8 w-8 mx-auto mb-3 ${dragActive ? "text-primary" : "text-muted-foreground"}`} />
             <p className="text-sm font-medium mb-1">Arrastra un archivo PDF aquí</p>
             <p className="text-xs text-muted-foreground mb-3">o selecciona uno manualmente</p>
-            <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={() => {}} disabled={uploading} />
+            <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0]); }} disabled={uploading} />
             <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
               Seleccionar archivo
             </Button>
