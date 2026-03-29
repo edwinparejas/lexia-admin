@@ -40,8 +40,12 @@ const PROVIDER_LOGOS = {
   ollama: "/logos/ollama.svg",
 };
 
-function ProviderDot({ provider, size = "w-2.5 h-2.5" }) {
-  return <div className={`${size} rounded-full shrink-0`} style={{ backgroundColor: PROVIDER_COLORS[provider] || "#666" }} />;
+function ProviderDot({ provider }) {
+  const logo = PROVIDER_LOGOS[provider];
+  if (logo) {
+    return <img src={logo} alt={provider} className="w-4 h-4 object-contain shrink-0" />;
+  }
+  return <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PROVIDER_COLORS[provider] || "#666" }} />;
 }
 
 function ProviderIcon({ provider }) {
@@ -91,7 +95,7 @@ function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModel
               <div key={field.key} className="rounded-lg border p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium flex items-center gap-1.5">
-                    <ProviderDot provider={provider} size="w-2 h-2" />
+                    <ProviderDot provider={provider} />
                     {field.label}
                   </label>
                 </div>
@@ -124,7 +128,7 @@ function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModel
           {/* Embeddings (fijo, solo info) */}
           <div className="rounded-lg border p-3 space-y-2 opacity-60">
             <label className="text-xs font-medium flex items-center gap-1.5">
-              <ProviderDot provider="openai" size="w-2 h-2" />
+              <ProviderDot provider="openai" />
               Embeddings
             </label>
             <div className="px-3 py-2 bg-muted border rounded-lg text-sm text-muted-foreground">
