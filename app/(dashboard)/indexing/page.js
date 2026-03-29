@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload, Database, RefreshCw, FileText, Scale, HardDrive, Layers,
   AlertCircle, CheckCircle2, Clock, Link2, BookOpen, Trash2, Globe,
-  ChevronDown, Search,
+  ChevronDown, Search, ExternalLink,
 } from "lucide-react";
 import { apiFetch, getToken } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,6 +93,8 @@ export default function IndexingPage() {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [filterArea, setFilterArea] = useState("ALL");
+  const [expandedDoc, setExpandedDoc] = useState(null);
+  const [editedUrls, setEditedUrls] = useState({});
   const fileRef = useRef(null);
 
   const loadIndexed = useCallback(async () => {
@@ -258,41 +260,84 @@ export default function IndexingPage() {
             {/* Tab: Suggested Documents */}
             <TabsContent value="suggested">
               <p className="text-xs text-muted-foreground mb-4">
-                Codigos y normas oficiales del Peru. Click en "Indexar" para que el servidor descargue e indexe el PDF directamente.
+                Codigos y normas oficiales del Peru. Puedes editar la URL si cambio. Click en "Indexar" para que el servidor descargue e indexe el PDF.
               </p>
               <div className="space-y-2">
-                {SUGGESTED_DOCS.map((doc) => {
+                {SUGGESTED_DOCS.map((doc, idx) => {
                   const isIndexed = indexedFilenames.has(doc.filename);
                   const areaInfo = AREA_MAP[doc.area];
+                  const editedUrl = editedUrls[idx];
+                  const currentUrl = editedUrl !== undefined ? editedUrl : doc.url;
+                  const isExpanded = expandedDoc === idx;
+
                   return (
-                    <div key={doc.filename} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isIndexed ? "bg-green-500/5 border-green-500/20" : "hover:bg-muted/30"}`}>
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <FileText className={`h-5 w-5 ${isIndexed ? "text-green-400" : "text-muted-foreground"}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{doc.label}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {doc.pages} pags · {doc.size} · {doc.source}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className={`text-[10px] shrink-0 ${areaInfo?.color || ""}`}>
-                        {doc.area}
-                      </Badge>
-                      {isIndexed ? (
-                        <Badge className="bg-green-500/10 text-green-400 text-[10px] shrink-0">Indexado</Badge>
-                      ) : !doc.url ? (
-                        <Badge variant="outline" className="text-[10px] shrink-0">Subir manual</Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={processing}
-                          onClick={() => handleIndexUrl(doc.url, doc.filename, doc.area)}
-                          className="shrink-0"
+                    <div key={doc.filename} className={`rounded-lg border transition-colors ${isIndexed ? "bg-green-500/5 border-green-500/20" : "hover:bg-muted/20"}`}>
+                      {/* Row principal */}
+                      <div className="flex items-center gap-3 p-3">
+                        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                          <FileText className={`h-4.5 w-4.5 ${isIndexed ? "text-green-400" : "text-muted-foreground"}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{doc.label}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {doc.pages} pags · {doc.size} · {doc.source}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] shrink-0 ${areaInfo?.color || ""}`}>
+                          {doc.area}
+                        </Badge>
+                        {isIndexed ? (
+                          <Badge className="bg-green-500/10 text-green-400 text-[10px] shrink-0">Indexado</Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={processing || !currentUrl}
+                            onClick={() => handleIndexUrl(currentUrl, doc.filename, doc.area)}
+                            className="shrink-0"
+                          >
+                            {processing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5 mr-1" />}
+                            Indexar
+                          </Button>
+                        )}
+                        <button
+                          onClick={() => setExpandedDoc(isExpanded ? null : idx)}
+                          className="p-1 hover:bg-muted rounded transition-colors shrink-0"
+                          title="Ver/editar URL"
                         >
-                          {processing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Globe className="h-3.5 w-3.5 mr-1" />}
-                          Indexar
-                        </Button>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                      </div>
+                      {/* Detalle expandido: URL editable + link */}
+                      {isExpanded && (
+                        <div className="px-3 pb-3 pt-0 space-y-2 border-t mx-3 mt-0 pt-2">
+                          <div>
+                            <label className="text-[10px] font-medium text-muted-foreground block mb-1">URL de descarga</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="url"
+                                value={currentUrl}
+                                onChange={(e) => setEditedUrls({ ...editedUrls, [idx]: e.target.value })}
+                                placeholder="https://..."
+                                className="flex-1 px-2.5 py-1.5 bg-muted border rounded-md text-xs font-mono focus:border-primary focus:outline-none"
+                              />
+                              {currentUrl && (
+                                <a
+                                  href={currentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2 py-1.5 text-xs text-primary hover:underline flex items-center gap-1 shrink-0"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Abrir
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-4 text-[10px] text-muted-foreground">
+                            <span>Archivo: <span className="font-mono text-foreground/70">{doc.filename}</span></span>
+                            <span>Area: <span className="text-foreground/70">{doc.area}</span></span>
+                          </div>
+                        </div>
                       )}
                     </div>
                   );
