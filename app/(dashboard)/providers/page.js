@@ -82,10 +82,17 @@ function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModel
             <h2 className="text-sm font-bold flex items-center gap-2"><Cpu className="h-4 w-4" /> Asignacion de Modelos</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Elige que modelo usa cada componente. Puedes mezclar proveedores.</p>
           </div>
-          <Button size="sm" onClick={onSave} disabled={saving}>
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {saving ? "Guardando..." : saved ? "Guardado" : "Guardar"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {saved && (
+              <span className="text-xs text-green-400 flex items-center gap-1">
+                <CheckCircle className="h-3.5 w-3.5" /> Guardado. Los cambios se aplican en max 5 min.
+              </span>
+            )}
+            <Button size="sm" onClick={onSave} disabled={saving} variant={saved ? "outline" : "default"}>
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              {saving ? "Guardando..." : saved ? "Guardado" : "Guardar"}
+            </Button>
+          </div>
         </div>
 
         {/* Tabla de costos expandible */}
