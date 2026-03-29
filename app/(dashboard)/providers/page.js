@@ -68,9 +68,12 @@ function ProviderIcon({ provider }) {
   );
 }
 
+// Proveedores con free tier (no cobran dentro de los limites)
+const FREE_TIER_PROVIDERS = new Set(["groq", "google", "ollama"]);
+
 // ===== MODEL ASSIGNMENT SECTION =====
 
-function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModels, onSave, saving, saved }) {
+function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModels, providerData, onSave, saving, saved }) {
   return (
     <Card>
       <CardContent className="p-5 space-y-4">
@@ -85,11 +88,66 @@ function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModel
           </Button>
         </div>
 
+        {/* Tabla de costos expandible */}
+        {availableModels && (
+          <details className="rounded-lg border p-3">
+            <summary className="text-xs font-medium cursor-pointer flex items-center gap-1">
+              <DollarSign className="h-3 w-3" /> Ver tabla de costos por modelo
+            </summary>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-1 pr-3">Proveedor</th>
+                    <th className="text-left py-1 pr-3">Modelo</th>
+                    <th className="text-right py-1 pr-3">Input/1M tok</th>
+                    <th className="text-right py-1 pr-3">Output/1M tok</th>
+                    <th className="text-center py-1">Free tier</th>
+                    <th className="text-center py-1">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelOptions.map((m) => {
+                    const prov = m.id.includes(":") ? m.id.split(":")[0] : "openai";
+                    const hasFree = FREE_TIER_PROVIDERS.has(prov);
+                    return (
+                      <tr key={m.id} className="border-b last:border-0">
+                        <td className="py-1.5 pr-3 text-foreground/60 flex items-center gap-1.5">
+                          <ProviderDot provider={prov} />
+                          {m.provider}
+                        </td>
+                        <td className="py-1.5 pr-3 font-mono">{m.label}</td>
+                        <td className="py-1.5 pr-3 text-right font-mono">{m.free ? "Gratis" : `$${m.costIn}`}</td>
+                        <td className="py-1.5 pr-3 text-right font-mono">{m.free ? "Gratis" : `$${m.costOut}`}</td>
+                        <td className="py-1.5 text-center">
+                          {hasFree ? (
+                            <Badge className="bg-green-500/10 text-green-400 text-[10px]">Gratis</Badge>
+                          ) : (
+                            <Badge className="bg-zinc-500/10 text-zinc-400 text-[10px]">Pago</Badge>
+                          )}
+                        </td>
+                        <td className="py-1.5 text-center">
+                          {m.configured ? (
+                            <Badge className="bg-green-500/10 text-green-400 text-[10px]">Listo</Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/10 text-amber-400 text-[10px]">Sin key</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {COMPONENT_FIELDS.map((field) => {
             const currentVal = llmConfig[field.key] || "";
             const selected = modelOptions.find((m) => m.id === currentVal || m.label === currentVal);
             const provider = currentVal.includes(":") ? currentVal.split(":")[0] : "openai";
+            const hasFree = FREE_TIER_PROVIDERS.has(provider);
 
             return (
               <div key={field.key} className="rounded-lg border p-3 space-y-2">
@@ -98,6 +156,9 @@ function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModel
                     <ProviderDot provider={provider} />
                     {field.label}
                   </label>
+                  {hasFree && selected && (
+                    <Badge className="bg-green-500/10 text-green-400 text-[10px]">Free tier</Badge>
+                  )}
                 </div>
                 <select
                   value={currentVal}
@@ -106,20 +167,26 @@ function ModelAssignment({ llmConfig, setLlmConfig, modelOptions, availableModel
                 >
                   <option value="">-- Seleccionar modelo --</option>
                   {Object.entries(availableModels || {}).map(([prov, info]) => (
-                    <optgroup key={prov} label={`${info.label}${info.configured ? "" : " (sin API key)"}`}>
+                    <optgroup key={prov} label={`${info.label}${info.configured ? "" : " (sin API key)"}${FREE_TIER_PROVIDERS.has(prov) ? " - GRATIS" : ""}`}>
                       {info.models.map((m) => (
                         <option key={m.id} value={m.id} disabled={!info.configured}>
-                          {m.name} {m.free ? "(gratis)" : `($${m.cost_input}/$${m.cost_output})`}
+                          {m.name} {m.free ? "(gratis)" : FREE_TIER_PROVIDERS.has(prov) ? "(free tier)" : `($${m.cost_input}/$${m.cost_output})`}
                         </option>
                       ))}
                     </optgroup>
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground">{field.hint}</p>
-                {selected && field.callsPerQuery && !selected.free && (
-                  <p className="text-xs text-amber-400">
-                    ≈ ${((selected.costIn * 1000 + selected.costOut * 500) / 1_000_000 * field.callsPerQuery).toFixed(4)} USD/consulta ({field.callsPerQuery} llamada{field.callsPerQuery > 1 ? "s" : ""})
-                  </p>
+                {selected && field.callsPerQuery && (
+                  hasFree ? (
+                    <p className="text-xs text-green-400">
+                      Gratis dentro del free tier ({field.callsPerQuery} llamada{field.callsPerQuery > 1 ? "s" : ""}/consulta)
+                    </p>
+                  ) : !selected.free ? (
+                    <p className="text-xs text-amber-400">
+                      ≈ ${((selected.costIn * 1000 + selected.costOut * 500) / 1_000_000 * field.callsPerQuery).toFixed(4)} USD/consulta ({field.callsPerQuery} llamada{field.callsPerQuery > 1 ? "s" : ""})
+                    </p>
+                  ) : null
                 )}
               </div>
             );
@@ -436,6 +503,7 @@ export default function ProvidersPage() {
         setLlmConfig={setLlmConfig}
         modelOptions={modelOptions}
         availableModels={availableModels}
+        providerData={providerData}
         onSave={handleSave}
         saving={saving}
         saved={saved}
