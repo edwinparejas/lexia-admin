@@ -29,7 +29,7 @@ const SUGGESTED_DOCS = [
   { filename: "constitucion.pdf", label: "Constitucion Politica del Peru 1993", area: "CONSTITUCIONAL", pages: 75, size: "823 KB", url: "https://www.tc.gob.pe/wp-content/uploads/2021/05/Constitucion-Politica-del-Peru-1993.pdf", source: "Tribunal Constitucional" },
   { filename: "codigo_civil.pdf", label: "Codigo Civil - DL 295", area: "CIVIL", pages: 724, size: "11 MB", url: "https://spijlibre.minjus.gob.pe/content/publicaciones_oficiales/img/Codigo-Civil.pdf", source: "SPIJ - Ministerio de Justicia" },
   { filename: "codigo_penal.pdf", label: "Codigo Penal - DL 635", area: "PENAL", pages: 259, size: "3.3 MB", url: "https://spijlibre.minjus.gob.pe/content/publicaciones_oficiales/img/CODIGOPENAL.pdf", source: "SPIJ - Ministerio de Justicia" },
-  { filename: "codigo_procesal_civil.pdf", label: "Codigo Procesal Civil", area: "CIVIL", pages: 293, size: "2.1 MB", url: "", source: "URL no disponible - usar tab 'Subir archivo'" },
+  { filename: "codigo_procesal_civil.pdf", label: "Codigo Procesal Civil - TUO", area: "CIVIL", pages: 293, size: "320 KB", url: "https://www2.congreso.gob.pe/sicr/cendocbib/con4_uibd.nsf/A74C46F90D22260D05257A87006608DF/$FILE/TEXTO_UNICO_ORDENADO_DEL_CODIGO_PROCESAL_CIVIL.pdf", source: "Congreso de la Republica" },
   { filename: "jurisprudencia_tc_tomo1.pdf", label: "Jurisprudencia Relevante TC - Tomo I", area: "CONSTITUCIONAL", pages: 992, size: "4.8 MB", url: "https://www.tc.gob.pe/wp-content/uploads/2018/10/Jurisprudencia-relevante-Tomo-I.pdf", source: "Tribunal Constitucional" },
 ];
 
