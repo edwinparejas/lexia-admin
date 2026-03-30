@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Upload, Database, RefreshCw, FileText, Scale, HardDrive, Layers,
   AlertCircle, CheckCircle2, Clock, Link2, BookOpen, Trash2, Globe,
-  ChevronDown, Search, ExternalLink,
+  ChevronDown, Search, ExternalLink, History, Replace, RotateCcw,
 } from "lucide-react";
 import { apiFetch, getToken } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,6 +96,11 @@ export default function IndexingPage() {
   const [expandedDoc, setExpandedDoc] = useState(null);
   const [editedUrls, setEditedUrls] = useState({});
   const [pypdfConfirm, setPypdfConfirm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [replaceDoc, setReplaceDoc] = useState(null);
+  const [replaceUrl, setReplaceUrl] = useState("");
+  const [versions, setVersions] = useState({});
+  const [expandedVersions, setExpandedVersions] = useState(null);
   const fileRef = useRef(null);
 
   const loadIndexed = useCallback(async () => {
@@ -116,7 +121,7 @@ export default function IndexingPage() {
       return;
     }
     setProcessing(true);
-    setStatus({ type: "info", message: `Subiendo y procesando "${file.name}"... Esto puede tardar 1-5 minutos.` });
+    setStatus({ type: "info", message: `Subiendo y procesando "${file.name}"... Puede tardar 1-5 minutos.` });
     try {
       const token = await getToken();
       const form = new FormData();
@@ -137,7 +142,7 @@ export default function IndexingPage() {
         setStatus({ type: "error", message: data.error || "Error al procesar." });
       }
     } catch {
-      setStatus({ type: "error", message: "Error de conexion. Si el archivo es mayor a 1MB, usa 'Indexar por URL'." });
+      setStatus({ type: "error", message: "Error de conexión. Si el archivo es mayor a 1MB, usa 'Indexar por URL'." });
     } finally {
       setProcessing(false);
     }
@@ -156,8 +161,8 @@ export default function IndexingPage() {
 
     setProcessing(true);
     setStatus({ type: "info", message: forcePypdf
-      ? `Reintentando con PyPDF "${finalFilename}"...`
-      : `Descargando y procesando "${finalFilename}"... Puede tardar 2-10 minutos.`
+      ? `Reintentando con PyPDF "${finalFilename}"…`
+      : `Descargando y procesando "${finalFilename}"… Puede tardar 2-10 minutos.`
     });
     try {
       const res = await apiFetch("/api/admin/index-document-url", {
@@ -204,6 +209,65 @@ export default function IndexingPage() {
     if (file) handleFileSelect(file);
   }
 
+  // Delete document
+  async function handleDelete(docId) {
+    setProcessing(true);
+    setStatus({ type: "info", message: "Eliminando documento y vectores..." });
+    try {
+      const res = await apiFetch(`/api/admin/delete-document/${docId}`, { method: "DELETE" });
+      if (res.error) {
+        setStatus({ type: "error", message: res.error });
+      } else {
+        setStatus({ type: "success", message: res.message || "Documento eliminado." });
+        loadIndexed();
+      }
+    } catch (err) {
+      setStatus({ type: "error", message: "Error al eliminar." });
+    } finally {
+      setProcessing(false);
+      setDeleteConfirm(null);
+    }
+  }
+
+  // Replace document
+  async function handleReplace(docId, url, forcePypdf = false) {
+    if (!url) { setStatus({ type: "error", message: "URL requerida." }); return; }
+    setProcessing(true);
+    setStatus({ type: "info", message: "Reemplazando documento... Puede tardar varios minutos." });
+    try {
+      const res = await apiFetch(`/api/admin/replace-document/${docId}`, {
+        method: "POST",
+        body: JSON.stringify({ url, force_pypdf: forcePypdf }),
+      });
+      if (res.status === "confirm_pypdf") {
+        setProcessing(false);
+        setStatus(null);
+        setPypdfConfirm({ ...res, docId, url });
+        return;
+      }
+      if (res.error) {
+        setStatus({ type: "error", message: res.error });
+      } else {
+        setStatus({ type: "success", message: res.message || "Documento reemplazado." });
+        setReplaceDoc(null);
+        setReplaceUrl("");
+        loadIndexed();
+      }
+    } catch (err) {
+      setStatus({ type: "error", message: "Error al reemplazar." });
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  // Load versions for a document
+  async function loadVersions(docId) {
+    try {
+      const data = await apiFetch(`/api/admin/document-versions/${docId}`);
+      if (Array.isArray(data)) setVersions((prev) => ({ ...prev, [docId]: data }));
+    } catch {}
+  }
+
   // Stats
   const totalChunks = indexed.reduce((s, d) => s + (d.chunks_created || 0), 0);
   const totalPages = indexed.reduce((s, d) => s + (d.total_pages || 0), 0);
@@ -224,7 +288,7 @@ export default function IndexingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Base Legal</h1>
-          <p className="text-sm text-muted-foreground">Documentos indexados en Pinecone para busqueda RAG</p>
+          <p className="text-sm text-muted-foreground">Documentos indexados en Pinecone para búsqueda RAG</p>
         </div>
         <Button variant="outline" size="sm" onClick={loadIndexed} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
@@ -269,8 +333,8 @@ export default function IndexingPage() {
                 <p className="text-sm font-medium">LlamaParse no pudo extraer texto</p>
                 <p className="text-xs text-muted-foreground mt-1">{pypdfConfirm.message}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  <strong>PyPDF</strong> es una alternativa que extrae texto basico sin formato (sin tablas ni estructura markdown).
-                  La calidad de busqueda puede ser menor pero el contenido legal estara disponible.
+                  <strong>PyPDF</strong> es una alternativa que extrae texto básico sin formato (sin tablas ni estructura markdown).
+                  La calidad de búsqueda puede ser menor pero el contenido legal estará disponible.
                 </p>
               </div>
             </div>
@@ -306,7 +370,7 @@ export default function IndexingPage() {
             {/* Tab: Suggested Documents */}
             <TabsContent value="suggested">
               <p className="text-xs text-muted-foreground mb-4">
-                Codigos y normas oficiales del Peru. Puedes editar la URL si cambio. Click en "Indexar" para que el servidor descargue e indexe el PDF.
+                Códigos y normas oficiales del Perú. Puedes editar la URL si cambió. Click en "Indexar" para que el servidor descargue e indexe el PDF.
               </p>
               <div className="space-y-2">
                 {SUGGESTED_DOCS.map((doc, idx) => {
@@ -395,7 +459,7 @@ export default function IndexingPage() {
             <TabsContent value="url">
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Pega la URL de un PDF. El servidor lo descarga e indexa directamente (sin limite de tamano).
+                  Pega la URL de un PDF. El servidor lo descarga e indexa directamente (sin límite de tamaño).
                 </p>
                 <div className="space-y-3">
                   <div>
@@ -441,7 +505,7 @@ export default function IndexingPage() {
             <TabsContent value="upload">
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Sube un PDF directamente. Limite ~1MB por restriccion del servidor. Para archivos grandes usa "Indexar por URL".
+                  Sube un PDF directamente. Límite ~1MB por restricción del servidor. Para archivos grandes usa "Indexar por URL".
                 </p>
                 <div
                   onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -537,47 +601,145 @@ export default function IndexingPage() {
                 <Database className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium">Sin documentos indexados</p>
-              <p className="text-xs text-muted-foreground mt-1">Usa la pestana "Documentos sugeridos" para empezar.</p>
+              <p className="text-xs text-muted-foreground mt-1">Usa la pestaña "Documentos sugeridos" para empezar.</p>
             </div>
           ) : (
             <div className="space-y-1.5">
-              {filteredDocs.map((d) => {
+              {filteredDocs.filter((d) => d.status !== "archived").map((d) => {
                 const areaKey = (d.document_type || "general").toUpperCase();
                 const areaInfo = AREA_MAP[areaKey];
+                const isExpVer = expandedVersions === d.id;
+                const docVersions = versions[d.id] || [];
+                const statusColors = {
+                  active: "bg-green-500/10 text-green-500",
+                  processing: "bg-amber-500/10 text-amber-500",
+                  error: "bg-red-500/10 text-red-500",
+                  archived: "bg-zinc-500/10 text-zinc-400",
+                };
+
                 return (
-                  <div key={d.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors group">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileText className="h-4.5 w-4.5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{d.filename}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {d.total_pages > 0 ? `${d.total_pages} pags` : "? pags"} · {d.chunks_created} chunks
-                      </p>
-                    </div>
-                    {(() => {
-                      const method = d.parse_method || "LlamaParse";
-                      const isPyPDF = method === "PyPDF";
-                      return (
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] shrink-0 ${isPyPDF ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-green-500/10 text-green-400 border-green-500/20"}`}
-                          title={isPyPDF ? "Extraido con PyPDF (basico). Recomendado buscar mejor version del PDF." : "Extraido con LlamaParse (calidad optima)"}
+                  <div key={d.id} className="rounded-lg border hover:bg-muted/10 transition-colors">
+                    <div className="flex items-center gap-3 p-3 group">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText className="h-4.5 w-4.5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{d.filename}</p>
+                          {d.current_version > 1 && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">v{d.current_version}</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {d.total_pages > 0 ? `${d.total_pages} págs` : "? págs"} · {d.chunks_created} chunks
+                          <span className={`ml-1.5 ${d.parse_method === "PyPDF" ? "text-amber-400/60" : "text-muted-foreground/50"}`}>
+                            · {d.parse_method || "LlamaParse"}
+                          </span>
+                          {d.uploaded_by && (
+                            <span className="ml-1.5 text-muted-foreground/40">· {d.uploaded_by}</span>
+                          )}
+                        </p>
+                      </div>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${statusColors[d.status] || statusColors.active}`}>
+                        {d.status === "active" ? "Activo" : d.status === "processing" ? "Procesando" : d.status === "error" ? "Error" : d.status}
+                      </span>
+                      <Badge variant="outline" className={`text-[10px] shrink-0 ${areaInfo?.color || ""}`}>
+                        {areaInfo?.label || d.document_type}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {new Date(d.updated_at || d.loaded_at || d.indexed_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
+                      </span>
+                      {/* Actions */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => { setReplaceDoc(d); setReplaceUrl(""); }}
+                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title="Reemplazar con nueva versión"
                         >
-                          {method}
-                        </Badge>
-                      );
-                    })()}
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${areaInfo?.color || ""}`}>
-                      {areaInfo?.label || d.document_type}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {new Date(d.loaded_at || d.indexed_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })}
-                    </span>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!isExpVer) loadVersions(d.id);
+                            setExpandedVersions(isExpVer ? null : d.id);
+                          }}
+                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title="Ver historial de versiones"
+                        >
+                          <History className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(d)}
+                          className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                          title="Eliminar documento"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Version history */}
+                    {isExpVer && (
+                      <div className="px-3 pb-3 border-t mx-3 pt-2 space-y-1">
+                        <p className="text-[10px] font-medium text-muted-foreground mb-1.5">Historial de versiones</p>
+                        {docVersions.length === 0 ? (
+                          <p className="text-[10px] text-muted-foreground/50">Cargando...</p>
+                        ) : docVersions.map((v) => (
+                          <div key={v.id} className="flex items-center gap-2 text-[10px]">
+                            <span className={`px-1.5 py-0.5 rounded-full font-medium ${v.status === "active" ? "bg-green-500/10 text-green-500" : "bg-zinc-500/10 text-zinc-400"}`}>
+                              v{v.version}
+                            </span>
+                            <span className="text-muted-foreground">{v.total_pages} págs · {v.chunks_created} chunks · {v.parse_method}</span>
+                            {v.uploaded_by && <span className="text-muted-foreground/50">{v.uploaded_by}</span>}
+                            <span className="text-muted-foreground/40 ml-auto">
+                              {new Date(v.created_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
+
+            {/* Delete confirmation */}
+            {deleteConfirm && (
+              <div className="mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+                <p className="text-sm font-medium">¿Eliminar "{deleteConfirm.filename}"?</p>
+                <p className="text-xs text-muted-foreground mt-1">Se eliminarán todos los vectores de Pinecone. Esta acción no se puede deshacer.</p>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(deleteConfirm.id)} disabled={processing}>
+                    {processing ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
+                    Eliminar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Replace dialog */}
+            {replaceDoc && (
+              <div className="mt-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+                <p className="text-sm font-medium">Reemplazar "{replaceDoc.filename}" (v{replaceDoc.current_version || 1} → v{(replaceDoc.current_version || 1) + 1})</p>
+                <p className="text-xs text-muted-foreground mt-1">Los vectores antiguos se eliminarán y se crearán nuevos con el PDF actualizado.</p>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="url"
+                    value={replaceUrl}
+                    onChange={(e) => setReplaceUrl(e.target.value)}
+                    placeholder="URL del PDF actualizado"
+                    className="flex-1 px-2.5 py-1.5 bg-muted border rounded-md text-xs focus:border-primary focus:outline-none"
+                    disabled={processing}
+                  />
+                  <Button size="sm" onClick={() => handleReplace(replaceDoc.id, replaceUrl)} disabled={processing || !replaceUrl}>
+                    {processing ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+                    Reemplazar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { setReplaceDoc(null); setReplaceUrl(""); }}>Cancelar</Button>
+                </div>
+              </div>
+            )}
           )}
         </CardContent>
       </Card>
@@ -585,7 +747,7 @@ export default function IndexingPage() {
       {/* Info */}
       <Card>
         <CardContent className="p-4">
-          <h3 className="text-xs font-semibold mb-2">Como funciona la indexacion</h3>
+          <h3 className="text-xs font-semibold mb-2">Cómo funciona la indexación</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs text-muted-foreground">
             <div className="flex gap-2">
               <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-400">1</div>
@@ -597,11 +759,11 @@ export default function IndexingPage() {
             </div>
             <div className="flex gap-2">
               <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-amber-400">3</div>
-              <div><p className="font-medium text-foreground">Fragmentacion</p><p>Se divide en chunks de 512 tokens</p></div>
+              <div><p className="font-medium text-foreground">Fragmentación</p><p>Se divide en chunks de 512 tokens</p></div>
             </div>
             <div className="flex gap-2">
               <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-green-400">4</div>
-              <div><p className="font-medium text-foreground">Indexacion</p><p>OpenAI Embeddings + Pinecone</p></div>
+              <div><p className="font-medium text-foreground">Indexación</p><p>OpenAI Embeddings + Pinecone</p></div>
             </div>
           </div>
         </CardContent>
