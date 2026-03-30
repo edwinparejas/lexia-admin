@@ -95,6 +95,7 @@ export default function IndexingPage() {
   const [filterArea, setFilterArea] = useState("ALL");
   const [expandedDoc, setExpandedDoc] = useState(null);
   const [editedUrls, setEditedUrls] = useState({});
+  const [pypdfConfirm, setPypdfConfirm] = useState(null);
   const fileRef = useRef(null);
 
   const loadIndexed = useCallback(async () => {
@@ -143,7 +144,7 @@ export default function IndexingPage() {
   }
 
   // Index from URL
-  async function handleIndexUrl(url, filename, docArea) {
+  async function handleIndexUrl(url, filename, docArea, forcePypdf = false) {
     const finalUrl = url || urlInput;
     const finalFilename = filename || filenameInput || finalUrl.split("/").pop()?.split("?")[0] || "document.pdf";
     const finalArea = docArea || area;
@@ -154,22 +155,33 @@ export default function IndexingPage() {
     }
 
     setProcessing(true);
-    setStatus({ type: "info", message: `Descargando e indexando "${finalFilename}"... El servidor descarga el PDF directamente. Puede tardar 2-10 minutos.` });
+    setStatus({ type: "info", message: forcePypdf
+      ? `Reintentando con PyPDF "${finalFilename}"...`
+      : `Descargando y procesando "${finalFilename}"... Puede tardar 2-10 minutos.`
+    });
     try {
       const res = await apiFetch("/api/admin/index-document-url", {
         method: "POST",
-        body: JSON.stringify({ url: finalUrl, filename: finalFilename, area: finalArea }),
+        body: JSON.stringify({ url: finalUrl, filename: finalFilename, area: finalArea, force_pypdf: forcePypdf }),
       });
+      if (res.status === "confirm_pypdf") {
+        // LlamaParse falló, pedir confirmación para PyPDF
+        setProcessing(false);
+        setStatus(null);
+        setPypdfConfirm({ url: finalUrl, filename: finalFilename, area: finalArea, message: res.message });
+        return;
+      }
       if (res.error) {
         setStatus({ type: "error", message: res.error });
       } else {
-        setStatus({ type: "success", message: `${res.message || "Indexado correctamente."} (${res.chunks} chunks, ${res.pages} paginas)` });
+        setStatus({ type: "success", message: res.message || "Documento procesado correctamente." });
         setUrlInput("");
         setFilenameInput("");
+        setPypdfConfirm(null);
         loadIndexed();
       }
     } catch (err) {
-      setStatus({ type: "error", message: err.message || "Error al indexar desde URL." });
+      setStatus({ type: "error", message: err.message || "Error al procesar." });
     } finally {
       setProcessing(false);
     }
@@ -246,6 +258,40 @@ export default function IndexingPage() {
 
       {/* Status */}
       <StatusBar status={status} />
+
+      {/* PyPDF Confirmation Dialog */}
+      {pypdfConfirm && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">LlamaParse no pudo extraer texto</p>
+                <p className="text-xs text-muted-foreground mt-1">{pypdfConfirm.message}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  <strong>PyPDF</strong> es una alternativa que extrae texto basico sin formato (sin tablas ni estructura markdown).
+                  La calidad de busqueda puede ser menor pero el contenido legal estara disponible.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 ml-8">
+              <Button
+                size="sm"
+                onClick={() => {
+                  handleIndexUrl(pypdfConfirm.url, pypdfConfirm.filename, pypdfConfirm.area, true);
+                }}
+                disabled={processing}
+              >
+                {processing ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                Continuar con PyPDF
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setPypdfConfirm(null)}>
+                Cancelar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Indexing Tabs */}
       <Card>
