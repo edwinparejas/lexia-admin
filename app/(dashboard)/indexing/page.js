@@ -552,7 +552,7 @@ export default function IndexingPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{d.filename}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {d.total_pages > 0 ? `${d.total_pages} pags` : "? pags"} · {d.chunks_created} chunks
+                        {d.total_pages > 0 ? `${d.total_pages} pags` : "? pags"} · {d.chunks_created} chunks · {d.parse_method || "LlamaParse"}
                       </p>
                     </div>
                     <Badge variant="outline" className={`text-[10px] shrink-0 ${areaInfo?.color || ""}`}>
