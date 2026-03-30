@@ -11,13 +11,17 @@ import { RefreshCw, CheckCircle, XCircle, AlertCircle, Clock, Cpu, HardDrive, Se
 const SERVICE_LOGOS = {};  // Using text initials instead
 
 const SERVICE_META = {
-  supabase:  { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E", logo: "/logos/supabase.png" },
-  pinecone:  { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58", logo: "/logos/pinecone.png" },
-  openai:    { label: "OpenAI", desc: "Modelos de IA (GPT-4o)", envVar: "OPENAI_API_KEY", color: "#10a37f", logo: "/logos/openai.png" },
-  resend:    { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6", logo: "/logos/resend.png" },
-  sentry:    { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226", logo: "/logos/sentry.png" },
-  langfuse:  { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b", logo: "/logos/langfuse.png" },
-  stripe:    { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff", logo: "/logos/stripe.png" },
+  supabase:    { label: "Supabase", desc: "Base de datos y autenticación", envVar: "SUPABASE_URL + SUPABASE_KEY", color: "#3ECF8E", logo: "/logos/supabase.png" },
+  pinecone:    { label: "Pinecone", desc: "Base de datos vectorial (RAG)", envVar: "PINECONE_API_KEY", color: "#0F9D58", logo: "/logos/pinecone.png" },
+  openai:      { label: "OpenAI", desc: "GPT-4o, GPT-4o-mini, Embeddings", envVar: "OPENAI_API_KEY", color: "#10a37f", logo: "/logos/openai.png" },
+  groq:        { label: "Groq", desc: "Llama 3.3, inferencia ultra rápida", envVar: "GROQ_API_KEY", color: "#f55036", logo: "/logos/groq.png" },
+  google:      { label: "Google Gemini", desc: "Gemini 2.5 Flash/Pro", envVar: "GOOGLE_API_KEY", color: "#4285f4", logo: "/logos/google.png" },
+  anthropic:   { label: "Anthropic", desc: "Claude Sonnet, Claude Haiku", envVar: "ANTHROPIC_API_KEY", color: "#d4a574", logo: "/logos/anthropic.png" },
+  openrouter:  { label: "OpenRouter", desc: "Multi-modelo (proxy)", envVar: "OPENROUTER_API_KEY", color: "#6366f1", logo: "/logos/openrouter.png" },
+  resend:      { label: "Resend", desc: "Emails transaccionales", envVar: "RESEND_API_KEY", color: "#8b5cf6", logo: "/logos/resend.png" },
+  sentry:      { label: "Sentry", desc: "Monitoreo de errores", envVar: "SENTRY_DSN", color: "#fb4226", logo: "/logos/sentry.png" },
+  langfuse:    { label: "Langfuse", desc: "Observabilidad LLM", envVar: "LANGFUSE_PUBLIC_KEY + SECRET_KEY", color: "#f59e0b", logo: "/logos/langfuse.png" },
+  stripe:      { label: "Stripe", desc: "Procesamiento de pagos", envVar: "STRIPE_SECRET_KEY", color: "#635bff", logo: "/logos/stripe.png" },
 };
 
 export default function HealthPage() {
@@ -114,7 +118,7 @@ export default function HealthPage() {
             const isOk = status === "ok";
             const isWarn = status === "warning";
             const enabled = service?.enabled;
-            const alwaysOn = ["supabase", "pinecone", "openai"].includes(name);
+            const alwaysOn = ["supabase", "pinecone", "openai", "groq", "google", "anthropic", "openrouter"].includes(name);
 
             return (
               <div
