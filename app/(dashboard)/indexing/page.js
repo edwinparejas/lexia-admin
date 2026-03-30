@@ -552,9 +552,22 @@ export default function IndexingPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{d.filename}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {d.total_pages > 0 ? `${d.total_pages} pags` : "? pags"} · {d.chunks_created} chunks · {d.parse_method || "LlamaParse"}
+                        {d.total_pages > 0 ? `${d.total_pages} pags` : "? pags"} · {d.chunks_created} chunks
                       </p>
                     </div>
+                    {(() => {
+                      const method = d.parse_method || "LlamaParse";
+                      const isPyPDF = method === "PyPDF";
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] shrink-0 ${isPyPDF ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-green-500/10 text-green-400 border-green-500/20"}`}
+                          title={isPyPDF ? "Extraido con PyPDF (basico). Recomendado buscar mejor version del PDF." : "Extraido con LlamaParse (calidad optima)"}
+                        >
+                          {method}
+                        </Badge>
+                      );
+                    })()}
                     <Badge variant="outline" className={`text-[10px] shrink-0 ${areaInfo?.color || ""}`}>
                       {areaInfo?.label || d.document_type}
                     </Badge>
