@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   BarChart3, Users, Key, Settings, CreditCard, ScrollText, FileText,
   Database, Shield, ChevronLeft, Sun, Moon, LogOut, Bell, Activity,
-  ChevronUp, Lock, ExternalLink, User, Cpu,
+  ChevronUp, Lock, ExternalLink, User, Cpu, BookOpen,
 } from "lucide-react";
 
 const NAV = [
@@ -28,6 +28,7 @@ const NAV = [
   { label: "CONTENIDO", items: [
     { href: "/documents", icon: FileText, label: "Documentos" },
     { href: "/indexing", icon: Database, label: "Base Legal" },
+    { href: "/indexing/templates", icon: BookOpen, label: "Plantillas" },
   ]},
   { label: "SISTEMA", items: [
     { href: "/providers", icon: Cpu, label: "Proveedores LLM" },
@@ -195,7 +196,11 @@ export default function DashboardLayout({ children }) {
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href) && item.href !== "/";
+                  const isActive = item.exact
+                    ? pathname === item.href
+                    : item.href === "/indexing"
+                      ? pathname === "/indexing"
+                      : pathname.startsWith(item.href) && item.href !== "/";
                   return (
                     <Link
                       key={item.href}

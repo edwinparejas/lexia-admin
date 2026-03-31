@@ -59,10 +59,15 @@ export const STATUS_OPTIONS = [
   { value: "error", label: "Error" },
 ];
 
-export function getGDrivePreviewUrl(url) {
+export function getPreviewUrl(url) {
   if (!url) return null;
+  // Google Drive → embed preview
   const match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
   if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
-  if (url.endsWith(".pdf")) return url;
+  // Supabase Storage or direct PDF URLs
+  if (url.includes("supabase.co/storage") || url.endsWith(".pdf")) return url;
   return null;
 }
+
+// Keep old name for backwards compat
+export const getGDrivePreviewUrl = getPreviewUrl;

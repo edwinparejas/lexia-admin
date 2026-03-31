@@ -142,8 +142,6 @@ export default function IndexingPage() {
         <DocumentToolbar
           searchQuery={table.searchQuery}
           onSearch={table.setSearchQuery}
-          selectedArea={table.selectedArea}
-          onAreaChange={table.setSelectedArea}
           selectedStatus={table.selectedStatus}
           onStatusChange={table.setSelectedStatus}
           viewMode={viewMode}
