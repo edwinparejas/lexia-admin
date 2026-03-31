@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   BarChart3, Users, Key, Settings, CreditCard, ScrollText, FileText,
   Database, Shield, ChevronLeft, Sun, Moon, LogOut, Bell, Activity,
-  ChevronUp, Lock, ExternalLink, User, Cpu, BookOpen,
+  ChevronUp, Lock, ExternalLink, User, Cpu, BookOpen, Sparkles,
 } from "lucide-react";
 
 const NAV = [
@@ -32,6 +32,7 @@ const NAV = [
   ]},
   { label: "SISTEMA", items: [
     { href: "/providers", icon: Cpu, label: "Proveedores LLM" },
+    { href: "/cache", icon: Sparkles, label: "Cache IA" },
     { href: "/audit", icon: ScrollText, label: "Audit Log" },
     { href: "/health", icon: Activity, label: "Salud del Sistema" },
   ]},
