@@ -128,8 +128,50 @@ export function useDocuments() {
     } catch { return []; }
   }
 
+  async function loadTemplates() {
+    try {
+      const data = await apiFetch("/api/admin/document-templates");
+      return Array.isArray(data) ? data : [];
+    } catch { return []; }
+  }
+
+  async function checkHash(file) {
+    try {
+      const token = await getToken();
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/admin/check-document-hash`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      return await res.json();
+    } catch { return { exists: false }; }
+  }
+
+  async function updateDocumentMeta(docId, updates) {
+    setProcessing(true);
+    try {
+      const res = await apiFetch(`/api/admin/update-document/${docId}`, {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      });
+      if (res.error) {
+        setStatus({ type: "error", message: res.error });
+      } else {
+        setStatus({ type: "success", message: "Documento actualizado." });
+        await loadDocuments();
+      }
+    } catch {
+      setStatus({ type: "error", message: "Error al actualizar." });
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   return {
     documents, loading, processing, status, setStatus,
     loadDocuments, deleteDocument, replaceDocument, indexFromUrl, uploadFile, loadVersions,
+    loadTemplates, checkHash, updateDocumentMeta,
   };
 }

@@ -39,6 +39,26 @@ export const SUGGESTED_DOCS = [
   { filename: "jurisprudencia_tc_tomo1.pdf", label: "Jurisprudencia Relevante TC - Tomo I", area: "CONSTITUCIONAL", pages: 992, size: "4.8 MB", url: "https://drive.google.com/file/d/1LRtqo_WDCPfsv3Ju6mh0Ev39Ajjpw8-c/view?usp=sharing", source: "Google Drive" },
 ];
 
+export const COLUMNS = [
+  { key: "filename", label: "Documento", sortable: true, default: true, minWidth: 200 },
+  { key: "area", label: "Área", sortable: false, default: true, minWidth: 90 },
+  { key: "status", label: "Estado", sortable: false, default: true, minWidth: 80 },
+  { key: "total_pages", label: "Páginas", sortable: true, default: true, align: "right", minWidth: 70 },
+  { key: "chunks_created", label: "Chunks", sortable: true, default: true, align: "right", minWidth: 70 },
+  { key: "parse_method", label: "Método", sortable: false, default: false, minWidth: 100 },
+  { key: "current_version", label: "Versión", sortable: true, default: true, minWidth: 70 },
+  { key: "uploaded_by", label: "Subido por", sortable: true, default: false, minWidth: 120 },
+  { key: "source_url", label: "Fuente", sortable: false, default: false, minWidth: 80 },
+  { key: "updated_at", label: "Actualizado", sortable: true, default: true, minWidth: 100 },
+];
+
+export const STATUS_OPTIONS = [
+  { value: "ALL", label: "Todos" },
+  { value: "active", label: "Activo" },
+  { value: "processing", label: "Procesando" },
+  { value: "error", label: "Error" },
+];
+
 export function getGDrivePreviewUrl(url) {
   if (!url) return null;
   const match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
